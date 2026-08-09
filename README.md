@@ -17,6 +17,9 @@ tells the difference.
 | [Vulkan vs ROCm](notes/02-vulkan-vs-rocm.md) | Can the Mesa Vulkan backend replace ROCm for LLM serving? | Yes, with two named carve-outs. |
 | [Speculative decoding](notes/03-speculative-decoding-is-lossy.md) | Are the n-gram speculative speedups real? | No. Every faster variant changed the output. |
 | [Diagnosing a broken quant](notes/04-diagnosing-a-broken-quant.md) | Bad weights or bad config? | One greedy call separates them. |
+| [The control that killed a false claim](notes/05-the-control-that-killed-a-false-claim.md) | Does a q4_0 KV cache buy back context for free? | Yes on VRAM. The decode gain was an artefact of a stale baseline. |
+| [Migrating under a written go/no-go](notes/06-migrating-under-a-written-go-no-go.md) | How do you upgrade the machine that serves everything? | Write the decision, the trigger, and the rollback down first. |
+| [When the verifier is wrong](notes/07-when-the-verifier-is-wrong.md) | What if the tools that check the system are the broken part? | One shell predicate silently hid production from three of them. |
 
 ## Method
 
@@ -34,8 +37,12 @@ Every measurement in these notes follows the same rules:
 
 - GPU: AMD Radeon RX 7900 XTX, 24 GB, gfx1100
 - CPU: Intel i5-14600KF, 48 GB DDR4
-- OS: Ubuntu 24.04, kernel 6.17.0-40
+- OS: Ubuntu 26.04 LTS, kernel 7.0.0-29
 - Serving: llama.cpp behind llama-swap, Open WebUI front end, ComfyUI for images
+
+The machine was upgraded from Ubuntu 24.04 during the period these notes cover.
+Measurements were taken on the version current at the time of each note, and
+each note states its own conditions where they matter.
 
 ## Licence
 

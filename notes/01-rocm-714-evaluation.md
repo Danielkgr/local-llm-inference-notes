@@ -85,3 +85,18 @@ adopted upgrade nobody measured.
 The genuinely useful finding arrived as a side question at the end of the
 session, and it was not ROCm at all. See
 [the Vulkan note](02-vulkan-vs-rocm.md).
+
+## Postscript, three weeks later: the prediction held
+
+This evaluation was written to answer a question nobody was forced to ask, and
+it returned nothing. Three weeks later the machine was upgraded to a new Ubuntu
+LTS, which brought a different driver stack with it.
+
+The driver tier had been the largest perceived risk in that migration. It was a
+non-event, exactly as this report had predicted in writing.
+
+That is the argument for publishing null results rather than filing them. A
+measured null is not an absence of information: it is a forecast about the next
+decision, and it can be checked. This one was, and it was right. The same report
+also left behind the ten-second probe that now runs before any dependency
+upgrade, which is a cheaper control than the evaluation that produced it.
