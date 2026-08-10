@@ -1,10 +1,10 @@
 # Local LLM inference: evaluation notes
 
 Engineering notes from running a local LLM and diffusion stack on a single
-workstation (AMD RX 7900 XTX / gfx1100, Ubuntu). Each note follows the same
+workstation (AMD RX 7900 XTX / gfx1100, Ubuntu).  Each note follows the same
 shape: a question, a pre-registered noise band, a measurement, and a verdict.
 
-Several of these verdicts are negative. That is deliberate. Most published
+Several of these verdicts are negative.  That is deliberate.  Most published
 benchmark writing reports the changes that worked; the expensive knowledge is
 usually in the changes that did not, and in the measurement discipline that
 tells the difference.
@@ -46,7 +46,7 @@ Every measurement in these notes follows the same rules:
   cent, decode plus or minus 10 per cent.
 - Library provenance asserted in both directions by reading `/proc/PID/maps`,
   so a claimed A/B is actually an A/B and not the same libraries twice.
-- Correctness gates outrank speed. A faster configuration that changes the
+- Correctness gates outrank speed.  A faster configuration that changes the
   output is not a faster configuration.
 
 The full set, and the failure that produced each rule, is in
@@ -65,4 +65,4 @@ each note states its own conditions where they matter.
 
 ## Licence
 
-MIT. See [LICENSE](LICENSE).
+MIT.  See [LICENSE](LICENSE).
