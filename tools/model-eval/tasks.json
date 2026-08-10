@@ -1,0 +1,247 @@
+{
+ "_comment": "Graded eval tasks for the local model tier. Each task is checkable WITHOUT an LLM judge -- graders are deterministic (substring, regex, numeric, JSON). An LLM judge would make results depend on the very thing being measured. Keep answers short so grading stays unambiguous.",
+ "tasks": [
+  {
+   "id": "extract-01",
+   "category": "extract",
+   "prompt": "From this line, reply with ONLY the invoice total, digits and decimal point only, no currency symbol:\nINV-4417  Acme Ltd  subtotal 1240.00  tax 248.00  total 1488.00",
+   "grader": "contains_all",
+   "expect": [
+    "1488.00"
+   ],
+   "reject": [
+    "1240",
+    "248.00"
+   ]
+  },
+  {
+   "id": "extract-02",
+   "category": "extract",
+   "prompt": "Reply with ONLY the IPv4 address in this log line:\nJul 31 22:14:03 host sshd[4021]: Accepted publickey for admin from 192.0.2.147 port 49812",
+   "grader": "contains_all",
+   "expect": [
+    "192.0.2.147"
+   ],
+   "reject": [
+    "49812",
+    "4021"
+   ]
+  },
+  {
+   "id": "extract-03",
+   "category": "extract",
+   "prompt": "List ONLY the three model filenames from this config, one per line, nothing else:\n-m /models/alpha-Q8.gguf --mmproj /models/beta-F32.gguf --draft /models/gamma-Q4.gguf",
+   "grader": "contains_all",
+   "expect": [
+    "alpha-Q8.gguf",
+    "beta-F32.gguf",
+    "gamma-Q4.gguf"
+   ]
+  },
+  {
+   "id": "extract-04",
+   "category": "extract",
+   "prompt": "Reply with ONLY the exit code number mentioned:\nThe deploy script terminated unexpectedly and returned exit code 137 after the OOM killer intervened.",
+   "grader": "regex",
+   "expect": [
+    "\\b137\\b"
+   ]
+  },
+  {
+   "id": "reason-01",
+   "category": "reason",
+   "prompt": "A server has 24 GB of VRAM. A model needs 18.3 GB and an embedder holds 3.44 GB. A second model needing 4 GB is requested. Does it fit? Answer YES or NO first, then one sentence.",
+   "grader": "starts_with_any",
+   "expect": [
+    "no"
+   ],
+   "reject": []
+  },
+  {
+   "id": "reason-02",
+   "category": "reason",
+   "prompt": "Backups run weekly and keep the newest 6. Each run is 1.3 GB. What is the steady-state total in GB? Reply with the number only.",
+   "grader": "numeric",
+   "expect": [
+    7.8
+   ],
+   "tolerance": 0.2
+  },
+  {
+   "id": "reason-03",
+   "category": "reason",
+   "prompt": "If a render takes 60 seconds warm and a cold page cache adds 15 to 35 seconds, what is the maximum cold time in seconds? Reply with the number only.",
+   "grader": "numeric",
+   "expect": [
+    95
+   ],
+   "tolerance": 0.5
+  },
+  {
+   "id": "reason-04",
+   "category": "reason",
+   "prompt": "A file shows 10 GB apparent size but 68 MB actual on disk. Is it sparse? Answer YES or NO first, then one sentence.",
+   "grader": "starts_with_any",
+   "expect": [
+    "yes"
+   ]
+  },
+  {
+   "id": "reason-05",
+   "category": "reason",
+   "prompt": "grep -q exits as soon as it matches. In a pipeline `cmd | grep -q x` with `set -o pipefail`, cmd may receive SIGPIPE. Can that make a successful match report failure? Answer YES or NO first, then one sentence.",
+   "grader": "starts_with_any",
+   "expect": [
+    "yes"
+   ]
+  },
+  {
+   "id": "code-01",
+   "category": "code",
+   "prompt": "Write a Python one-liner that returns True if a file path is a sparse file. Use os.stat. Reply with code only, no explanation, no markdown fence.",
+   "grader": "contains_all",
+   "expect": [
+    "st_blocks",
+    "st_size"
+   ]
+  },
+  {
+   "id": "code-02",
+   "category": "code",
+   "prompt": "In bash, write the command that lists systemd USER units that have failed. Reply with the command only, no explanation.",
+   "grader": "regex",
+   "expect": [
+    "systemctl",
+    "--user",
+    "(--failed|--state[= ]failed|is-failed)"
+   ]
+  },
+  {
+   "id": "code-03",
+   "category": "code",
+   "prompt": "Write a Python regex that matches filenames ending in .safetensors or .gguf. It must not truncate .pth to .pt. Reply with the pattern string only.",
+   "grader": "contains_all",
+   "expect": [
+    "safetensors",
+    "gguf"
+   ]
+  },
+  {
+   "id": "code-04",
+   "category": "code",
+   "prompt": "Give the sqlite3 shell command that makes a consistent backup of live.db to out.db. Reply with the command only.",
+   "grader": "contains_all",
+   "expect": [
+    ".backup"
+   ]
+  },
+  {
+   "id": "code-05",
+   "category": "code",
+   "prompt": "Write the curl command to POST {\"a\":1} as JSON to http://127.0.0.1:9000/x. Reply with the command only.",
+   "grader": "contains_all",
+   "expect": [
+    "curl",
+    "-d",
+    "127.0.0.1:9000/x"
+   ]
+  },
+  {
+   "id": "instruct-01",
+   "category": "instruct",
+   "prompt": "Reply with exactly the single word: acknowledged",
+   "grader": "exact_word",
+   "expect": [
+    "acknowledged"
+   ]
+  },
+  {
+   "id": "instruct-02",
+   "category": "instruct",
+   "prompt": "Answer in exactly three words: What colour is a clear midday sky?",
+   "grader": "word_count",
+   "expect": [
+    3
+   ],
+   "tolerance": 1
+  },
+  {
+   "id": "instruct-03",
+   "category": "instruct",
+   "prompt": "Reply with ONLY valid JSON, no prose and no markdown fence: an object with keys \"host\" (string \"box\") and \"port\" (number 8080).",
+   "grader": "json_keys",
+   "expect": [
+    "host",
+    "port"
+   ]
+  },
+  {
+   "id": "instruct-04",
+   "category": "instruct",
+   "prompt": "Without any preamble, reply with the three words apple, banana, cherry as a comma-separated list on one line.",
+   "grader": "contains_all",
+   "expect": [
+    "apple",
+    "banana",
+    "cherry"
+   ]
+  },
+  {
+   "id": "summ-01",
+   "category": "summarize",
+   "prompt": "Summarize in one sentence under 25 words: The render stalled beyond 600 seconds on kernel 7.0 and had to be reaped by restarting the service, while the same workflow completed in 60 to 96 seconds on kernel 6.17, indicating the KFD userptr hang rather than a slow machine.",
+   "grader": "contains_any_and_short",
+   "expect": [
+    "stall",
+    "hang",
+    "7.0",
+    "kernel"
+   ],
+   "max_words": 35
+  },
+  {
+   "id": "summ-02",
+   "category": "summarize",
+   "prompt": "In one sentence under 25 words, state the single main risk: Backups are written to the same physical disk that holds the originals, so any drive failure destroys both copies at once.",
+   "grader": "contains_any_and_short",
+   "expect": [
+    "same",
+    "one drive",
+    "single",
+    "both",
+    "disk"
+   ],
+   "max_words": 35
+  },
+  {
+   "id": "faith-01",
+   "category": "faithfulness",
+   "prompt": "Context: The box has 48 GB of RAM.\nQuestion: According to the context, how much VRAM does the GPU have? If the context does not say, reply exactly: NOT STATED",
+   "grader": "contains_all",
+   "expect": [
+    "NOT STATED"
+   ]
+  },
+  {
+   "id": "faith-02",
+   "category": "faithfulness",
+   "prompt": "Context: Kernel 6.17.0-41 is running and image generation passes in 72 seconds.\nQuestion: According to the context, did kernel 7.0 pass? If the context does not say, reply exactly: NOT STATED",
+   "grader": "contains_all",
+   "expect": [
+    "NOT STATED"
+   ]
+  },
+  {
+   "id": "faith-03",
+   "category": "faithfulness",
+   "prompt": "Context: ViewComfy listens on 127.0.0.1:3000 and Open WebUI on 127.0.0.1:8080.\nQuestion: According to the context, which port does ViewComfy use? Reply with the number only.",
+   "grader": "regex",
+   "expect": [
+    "\\b3000\\b"
+   ],
+   "reject": [
+    "8080"
+   ]
+  }
+ ]
+}

@@ -20,6 +20,22 @@ tells the difference.
 | [The control that killed a false claim](notes/05-the-control-that-killed-a-false-claim.md) | Does a q4_0 KV cache buy back context for free? | Yes on VRAM. The decode gain was an artefact of a stale baseline. |
 | [Migrating under a written go/no-go](notes/06-migrating-under-a-written-go-no-go.md) | How do you upgrade the machine that serves everything? | Write the decision, the trigger, and the rollback down first. |
 | [When the verifier is wrong](notes/07-when-the-verifier-is-wrong.md) | What if the tools that check the system are the broken part? | One shell predicate silently hid production from three of them. |
+| [A benchmark with no judge](notes/08-a-benchmark-with-no-judge.md) | Can you rank models without an LLM judge? | Yes for grading. The difficulty calibration ceilinged twice. |
+| [When the harness scores itself](notes/09-when-the-harness-scores-itself.md) | A model scores 0/50, then 44/50. Is that the model? | Neither result was. Both came from the harness. |
+
+## Tools
+
+Runnable, dependency-light, and parameterised so they work off this machine.
+Defaults point at localhost; every path and endpoint is a flag or an environment
+variable.
+
+| Tool | Purpose | Related note |
+|---|---|---|
+| [model-eval/](tools/model-eval/) | Graded eval suite for any OpenAI-compatible server. Deterministic graders, two difficulty tiers, baseline diffing by percentage. | [08](notes/08-a-benchmark-with-no-judge.md), [09](notes/09-when-the-harness-scores-itself.md) |
+| [gguf-arch.py](tools/gguf-arch.py) | Read `general.architecture` and shape keys straight from a GGUF header, because the obvious tool prints keys without values and turns an architecture gate into one that passes everything. | [07](notes/07-when-the-verifier-is-wrong.md) |
+| [gpu-mutex-guard.sh](tools/gpu-mutex-guard.sh) | Hand one GPU between an inference server and an image pipeline, waiting for the asynchronous VRAM release rather than racing it. | |
+| [context-readout.py](tools/context-readout.py) | Measure how close real conversations get to each model's configured context limit, before paying VRAM for headroom nobody reaches. | |
+| [resume-dl.py](tools/resume-dl.py) | Append-only downloader that verifies HTTP 206 before resuming and refuses to run without a known target size. | |
 
 ## Method
 
@@ -32,6 +48,9 @@ Every measurement in these notes follows the same rules:
   so a claimed A/B is actually an A/B and not the same libraries twice.
 - Correctness gates outrank speed. A faster configuration that changes the
   output is not a faster configuration.
+
+The full set, and the failure that produced each rule, is in
+[METHOD.md](METHOD.md).
 
 ## Environment
 
