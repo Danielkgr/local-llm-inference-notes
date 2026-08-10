@@ -33,8 +33,17 @@ that depends on someone remembering to look is not a gate.
 The document also records what jumping the gate would mean, in plain terms:
 running a release the vendor has not yet marked ready, on the machine that serves
 everything, with no vendor driver repository for it yet. It will probably work,
-and if it does not, the only way back is the image described below. Written that
-way, the choice is explicit rather than optimistic.
+and if it does not, the only way back is the image described below.
+
+**The gate was then jumped deliberately.** The flag had not flipped when the
+upgrade ran. That is the outcome the document was written to make possible: not
+to force patience, but to ensure that going early was a decision taken against a
+written description of the risk and a rollback that already existed, rather than
+a decision taken on the day because the work felt finished.
+
+A go/no-go that can only ever say "wait" is a delay mechanism. A useful one
+states the cost of each branch and lets you choose the expensive branch with your
+eyes open.
 
 ## Rollback first, and honestly
 
@@ -75,9 +84,9 @@ stops a passing run from being read as proof the migration changed nothing.
 
 ## Outcome
 
-The upgrade ran across two days. The environments were rebuilt on a standalone
-interpreter. The kernel image-generation hang was resolved rather than
-worked around.
+The upgrade ran across two days, ahead of the vendor's own readiness flag. The
+environments were rebuilt on a standalone interpreter. The kernel
+image-generation hang was resolved rather than worked around.
 
 The driver stack, which had been the largest perceived risk, was a non-event.
 That was not luck: an [earlier evaluation](01-rocm-714-evaluation.md) had
