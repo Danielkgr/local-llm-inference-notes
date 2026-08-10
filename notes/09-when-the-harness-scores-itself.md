@@ -20,8 +20,11 @@ was registered and answering.  The stored result explains the difference.  The
 run's model key is not a model name, it is two of them:
 
 ```
-08. FF711-27B (Uncensored-Heretic, MTP Q4_K_M),09. Heretic-v2-27B (Uncensored, MTP Q5_K_M)
+08. Model-A-27B (variant-tag, MTP Q4_K_M),09. Model-B-27B (variant-tag, MTP Q5_K_M)
 ```
+
+Model identifiers are replaced with placeholders here.  The structure is
+verbatim: two names, each already containing a comma, joined by a third.
 
 Model names on this server contain commas.  A comma-separated list of two models
 and a single model whose name contains a comma are the same string, and the

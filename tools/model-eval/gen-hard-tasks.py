@@ -246,7 +246,7 @@ add(id="hard-code-06", category="code",
 # ------------------------------------------------------------------ instruction following
 add(id="hard-instruct-01", category="instruct",
     prompt="Reply with valid JSON only - no prose, no markdown fence: an object with keys "
-           "\"name\" (string \"ff711\"), \"mtp\" (boolean true), and \"size_gib\" (number 15.65).",
+           "\"name\" (string \"model-a\"), \"mtp\" (boolean true), and \"size_gib\" (number 15.65).",
     grader="json_keys", expect=["name", "mtp", "size_gib"])
 
 add(id="hard-instruct-02", category="instruct",
