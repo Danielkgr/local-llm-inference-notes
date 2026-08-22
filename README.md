@@ -22,6 +22,12 @@ tells the difference.
 | [When the verifier is wrong](notes/07-when-the-verifier-is-wrong.md) | What if the tools that check the system are the broken part? | One shell predicate silently hid production from three of them. |
 | [A benchmark with no judge](notes/08-a-benchmark-with-no-judge.md) | Can you rank models without an LLM judge? | Yes for grading. The difficulty calibration ceilinged twice. |
 | [When the harness scores itself](notes/09-when-the-harness-scores-itself.md) | A model scores 0/50, then 44/50. Is that the model? | Neither result was. Both came from the harness. |
+| [Carrying a patch against upstream](notes/10-carrying-a-patch-against-upstream.md) | What does a local patch cost, and when does it stop being yours? | One merged upstream, one has no repro left to defend, one had its predicate narrowed twice. |
+| [A guard that trusts its own number](notes/11-a-guard-that-trusts-its-own-number.md) | Automatic compaction never fired before the session died. Why? | Its threshold sat 90,000 tokens past the server's ceiling. It was unreachable, not late. |
+| [Four sampling profiles, three rankings](notes/12-four-sampling-profiles-three-rankings.md) | Does the sampling profile change how well a model scores? | Not measurably. Three repeats produced three different league tables. |
+| [Gating on the failure set](notes/13-gating-on-the-failure-set.md) | Can a model be adopted from fewer tasks without weakening the decision? | Yes. Only the tasks the incumbent passed can disqualify — and a recovery needs a control too. |
+| [Six upstream bumps rejected](notes/14-six-upstream-bumps-rejected.md) | Is staying 149 releases behind a maintenance failure? | No. Six candidates measured, six flat or worse. The driver underneath had to be measured too. |
+| [The same false negative, five times](notes/15-the-same-false-negative-five-times.md) | A reasoning model returns an empty string. How often can one machine misread that? | Five, across four harnesses. Raising the budget four times did not stop it. |
 
 ## Tools
 
@@ -31,7 +37,7 @@ variable.
 
 | Tool | Purpose | Related note |
 |---|---|---|
-| [model-eval/](tools/model-eval/) | Graded eval suite for any OpenAI-compatible server. Deterministic graders, two difficulty tiers, baseline diffing by percentage. | [08](notes/08-a-benchmark-with-no-judge.md), [09](notes/09-when-the-harness-scores-itself.md) |
+| [model-eval/](tools/model-eval/) | Graded eval suite for any OpenAI-compatible server. Deterministic graders, two difficulty tiers, baseline diffing by percentage, and a failure-set adoption gate that runs only the tasks capable of deciding it. | [08](notes/08-a-benchmark-with-no-judge.md), [09](notes/09-when-the-harness-scores-itself.md), [13](notes/13-gating-on-the-failure-set.md) |
 | [gguf-arch.py](tools/gguf-arch.py) | Read `general.architecture` and shape keys straight from a GGUF header, because the obvious tool prints keys without values and turns an architecture gate into one that passes everything. | [07](notes/07-when-the-verifier-is-wrong.md) |
 | [gpu-mutex-guard.sh](tools/gpu-mutex-guard.sh) | Hand one GPU between an inference server and an image pipeline, waiting for the asynchronous VRAM release rather than racing it. | |
 | [context-readout.py](tools/context-readout.py) | Measure how close real conversations get to each model's configured context limit, before paying VRAM for headroom nobody reaches. | |
@@ -48,20 +54,37 @@ Every measurement in these notes follows the same rules:
   so a claimed A/B is actually an A/B and not the same libraries twice.
 - Correctness gates outrank speed.  A faster configuration that changes the
   output is not a faster configuration.
+- Repeat one configuration before comparing two.  A benchmark's noise floor is a
+  measurable property of the benchmark, and until it is measured every gap is
+  unfalsifiable.
+- Report the set of tasks that fail every time, not only the total.  The total is
+  a noisy statistic; the always-fail set is a property of the model.
 
 The full set, and the failure that produced each rule, is in
 [METHOD.md](METHOD.md).
 
 ## Environment
 
+Serving box:
+
 - GPU: AMD Radeon RX 7900 XTX, 24 GB, gfx1100
 - CPU: Intel i5-14600KF, 48 GB DDR4
-- OS: Ubuntu 26.04 LTS, kernel 7.0.0-29
+- OS: Ubuntu 26.04 LTS, kernel 7.0.0-30
 - Serving: llama.cpp behind llama-swap, Open WebUI front end, ComfyUI for images
 
-The machine was upgraded from Ubuntu 24.04 during the period these notes cover.
-Measurements were taken on the version current at the time of each note, and
-each note states its own conditions where they matter.
+Second machine, added part way through:
+
+- An AMD Strix Halo APU with unified LPDDR5X, on the same LAN, running the
+  always-on tier — embedding, reranking, the small fast model, speech to text
+  and text to speech — plus one resident coding model that is never evicted.
+
+The serving box was upgraded from Ubuntu 24.04 during the period these notes
+cover.  Measurements were taken on the version current at the time of each note,
+and each note states its own conditions where they matter.
+
+Where a note compares results measured on both machines, pass rates are
+comparable and timings are not: the same weights under greedy decoding score the
+same anywhere, while tokens per second is a property of the hardware.
 
 ## Licence
 

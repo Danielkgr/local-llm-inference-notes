@@ -9,7 +9,7 @@ an environment variable.
 
 | Tool | One line | Related note |
 |---|---|---|
-| [`model-eval/run-eval.py`](model-eval/run-eval.py) | Score any OpenAI-compatible server against a graded task suite, with deterministic graders and baseline diffing. | [08](../notes/08-a-benchmark-with-no-judge.md), [09](../notes/09-when-the-harness-scores-itself.md) |
+| [`model-eval/run-eval.py`](model-eval/run-eval.py) | Score any OpenAI-compatible server against a graded task suite, with deterministic graders, baseline diffing, and a failure-set adoption gate. | [08](../notes/08-a-benchmark-with-no-judge.md), [09](../notes/09-when-the-harness-scores-itself.md), [12](../notes/12-four-sampling-profiles-three-rankings.md), [13](../notes/13-gating-on-the-failure-set.md), [15](../notes/15-the-same-false-negative-five-times.md) |
 | [`model-eval/gen-hard-tasks.py`](model-eval/gen-hard-tasks.py) | Generate the hard tier reproducibly, asserting every needle is unique in its haystack. | [08](../notes/08-a-benchmark-with-no-judge.md) |
 | [`gguf-arch.py`](gguf-arch.py) | Read a GGUF's architecture and shape keys from the header bytes. | [07](../notes/07-when-the-verifier-is-wrong.md) |
 | [`gpu-mutex-guard.sh`](gpu-mutex-guard.sh) | Hand one GPU between two services without either dying on allocation. | |
@@ -49,12 +49,62 @@ JSON.  Regenerating without editing the script reproduces the file byte for byte
 
 Results are written as JSON so runs are diffable, and `--baseline` compares
 percentages rather than raw scores, because a suite that changed size makes raw
-score diffs actively misleading.
+score diffs actively misleading.  Each results file also records the sampling,
+token budget, and task selection that produced it, so "match the baseline's
+settings" is an instruction someone can actually follow.
+
+### The adoption gate
+
+Adoption is a failure-set question, not a score question: **does the candidate
+fail anything the incumbent passes?**  A one- or two-point difference in totals
+is usually one flip-prone task, as [note 12](../notes/12-four-sampling-profiles-three-rankings.md)
+shows.  That reframing splits the suite along an asymmetry — only the tasks the
+baseline *passed* can disqualify, and only the ones it *failed* can improve the
+verdict — so the disqualifying half runs first and can end early.
+
+```sh
+# stage 1: only the tasks that can disqualify, most expensive first, stop at two
+./run-eval.py --models CANDIDATE --baseline incumbent.json \
+              --gate passed --order baseline-slowest --gate-stop-after 2
+
+# stage 2: upside only -- the tasks the incumbent failed
+./run-eval.py --models CANDIDATE --baseline incumbent.json --gate failed
+
+./run-eval.py --baseline incumbent.json --gate passed --dry-run   # selection, no GPU
+```
+
+Every new failure is retried once before it counts, because an empty response
+from runaway reasoning and a transient API error both look like a failure and
+both have faked a regression here.  `--gate-stop-after` refuses to run with
+`--jobs > 1`: with concurrency every task is dispatched before the first result
+is read, so the abort could only fire after the GPU time it exists to save.
+
+Partial runs are labelled as partial.  The results file carries the selection
+that produced it and a `complete_suite` flag, so a twelve-task gate can never be
+read back later as "12/50".
+
+A task the candidate *recovers* is a claim about the baseline file, not about
+the candidate — check it by re-running that task against the baseline model in
+the same sitting.  The first real use of this gate produced a recovery that
+turned out to be a token budget running out a week earlier.
+
+### Token budgets
+
+`--max-tokens` defaults to 16000.  A reasoning model spends its budget on
+reasoning before the answer, and when it runs out the response comes back with
+empty content and a finish reason of `length`.  That is scored as an error in
+its own column, never as a pass and never as a content failure, and the row
+records the finish reason and the reasoning length so starvation is
+distinguishable from a model that genuinely said nothing.  On this machine
+budgets of 300, 500, 2000 and 4500 each produced a false capability finding —
+see [note 15](../notes/15-the-same-false-negative-five-times.md).
 
 Read [note 08](../notes/08-a-benchmark-with-no-judge.md) for the design position
-and the honest limits of this suite, and
+and the honest limits of this suite,
 [note 09](../notes/09-when-the-harness-scores-itself.md) for two runs where the
-harness scored itself instead of the model.
+harness scored itself instead of the model, and
+[note 13](../notes/13-gating-on-the-failure-set.md) for the gate's design and
+first use.
 
 ## gguf-arch.py
 

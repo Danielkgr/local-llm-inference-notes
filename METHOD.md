@@ -34,6 +34,19 @@ variable under test.
 **Give every prompt a per-request nonce.**  Prompt-cache hits on repeated
 identical prompts produce nonsense prefill figures that look like enormous wins.
 
+**Measure the noise floor of a graded suite before comparing two configurations
+on it.**  Repeat one configuration three times and see what moves.  Four sampling
+profiles run three times each produced three different rankings from the same
+twelve runs, and a three-point lead in the first sitting was gone by the third.
+See [note 12](notes/12-four-sampling-profiles-three-rankings.md).
+
+**Print the token budget in the output, and treat any capped run as measuring
+the cap until shown otherwise.**  A reasoning model that runs out of budget
+returns empty content with a finish reason of `length`, which reads as a wrong
+answer.  Four different budgets produced four false capability findings here, and
+the last of them was a budget already raised to be generous.  See
+[note 15](notes/15-the-same-false-negative-five-times.md).
+
 ## Trusting a measurement
 
 **Assert provenance in both directions.**  Before believing an A/B, read
@@ -55,6 +68,25 @@ cause upstream of the thing being tested.  See
 candidate lands within a few points of the maximum, the benchmark has stopped
 measuring whatever its pass rate says.
 
+**A result that favours you needs the same control as one that does not.**  A
+candidate that recovers a task the incumbent failed is making a claim about a row
+in a stored baseline file.  Re-run that task against the incumbent in the same
+sitting.  The first use of the adoption gate produced a recovery that was a token
+budget running out a week earlier.  See
+[note 13](notes/13-gating-on-the-failure-set.md).
+
+**Check that a guard could fire before trusting it.**  Two on this machine could
+not: a compaction threshold set beyond the context the server would accept, and
+an early-abort that was requested alongside a concurrency setting which computed
+every task before the first result was read.  A guard that cannot fire is worse
+than no guard, because it is also a claim that you are guarded.  See
+[note 11](notes/11-a-guard-that-trusts-its-own-number.md).
+
+**Derive a limit from the thing it protects; never restate it in a client.**
+Where a client insists on holding its own copy, assert equality against the
+server at startup and refuse to run on mismatch.  A declared number that nobody
+checks is a comment with consequences.
+
 ## Correctness
 
 **Correctness gates outrank speed.**  A faster configuration that changes the
@@ -72,7 +104,15 @@ are the only correct answers.
 
 **Distinguish "wrong answer" from "no answer".**  An empty response is not a
 failure of capability, and an empty string trivially satisfies any
-does-not-contain check.  Count it separately or it will silently pass.
+does-not-contain check.  Count it separately or it will silently pass.  Record
+*why* it was empty next to the row — the finish reason and how much reasoning
+was produced — because a starved budget and a model that said nothing are
+different findings that print as the same blank cell.
+
+**Compare failure sets, not totals, when the decision is adoption.**  A candidate
+earns adoption by failing nothing the incumbent passes.  Only the tasks the
+incumbent passed can disqualify it, which is also the cheapest way to run the
+comparison.  See [note 13](notes/13-gating-on-the-failure-set.md).
 
 ## Reporting
 
@@ -95,3 +135,35 @@ Do not quietly drop it.  The excluded rows and the reason belong in the note.
 every branch of a check against a known-bad input before trusting it.  Two
 detectors on this machine passed their own self-tests while testing a copy of
 their logic rather than the script itself.
+
+**Label a partial run inside its own output.**  Any run that was filtered, gated,
+or aborted must carry the selection that produced it, so a twelve-task gate can
+never be read back later as a suite score.
+
+## Changing the machine
+
+**Anything underneath the engine is part of the apparatus.**  A graphics driver,
+a kernel, an allocator: upgrading one invalidates every baseline you hold.  Take
+fresh baselines first, or the next comparison becomes an argument about which
+change caused what.
+
+**A rejection is dated and conditioned.**  A candidate rejected under the old
+driver has to be re-checked after the driver changes, because the rejection was
+a fact about the pair, not about the candidate.
+
+**Derive what is in use from the running configuration, not from a search for
+its name.**  A grep answers "where does this string appear", which is a different
+question from "what gets executed".  A build tree that appeared only in comments
+was about to be deleted; a guard clause in the serving configuration executes it
+for one model that nothing else can load.
+
+**For a risky change you cannot supervise, make the proven configuration the
+default and give the new one a single one-shot attempt with an automatic test
+afterwards.**  Then a failure costs a reboot rather than a trip to the machine.
+See [note 14](notes/14-six-upstream-bumps-rejected.md).
+
+**A local patch needs a recorded base commit, a check that runs after every
+pull, and a condition that ends it.**  Without the third it is permanent by
+default.  When upstream absorbs the fix, invert the check rather than deleting
+it: the machine that found the bug is the one that will notice its return.  See
+[note 10](notes/10-carrying-a-patch-against-upstream.md).
