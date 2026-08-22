@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-gen-hard-tasks.py — writes tasks-hard.json (the "hard" tier of the eval suite).
+gen-hard-tasks.py: writes tasks-hard.json (the "hard" tier of the eval suite).
 
 Why this exists: on 1 Aug 2026 the core suite ceilinged. Model 06 scored 23/23, so a
 candidate model could only tie, never demonstrate a gain. The hard tier exists to put
-headroom back in the measurement — the target is ~70-80% for model 06 on the merged suite.
+headroom back in the measurement.  The target is ~70-80% for model 06 on the merged suite.
 
 Why a generator rather than hand-written JSON: the long-context tasks need multi-hundred-line
 haystacks, which are unreadable and unmaintainable inline. Generation is fully DETERMINISTIC
-(index arithmetic, no RNG, no clock) so the file is reproducible and diffable — regenerating
+(index arithmetic, no RNG, no clock) so the file is reproducible and diffable.  Regenerating
 without editing this script must produce a byte-identical tasks-hard.json.
 
 Every needle is asserted unique inside its haystack. A needle that also appears in the filler

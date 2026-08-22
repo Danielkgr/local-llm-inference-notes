@@ -13,9 +13,9 @@ profile that came last in the first sitting was joint first in the second.
 One model, one 50-task graded suite, four sampling profiles, three repeats each.
 Twelve complete runs.  The profiles were the one in production, the vendor's
 published recommendation for non-thinking mode, a low-temperature variant, and
-the production profile with a minimum-probability floor added — the last chosen
-because a `min_p` floor is supposed to trim the unlikely tail and stabilise
-output.
+the production profile with a minimum-probability floor added.  That last one
+earns its place because a `min_p` floor is supposed to trim the unlikely tail
+and stabilise output.
 
 | profile | temperature | top-p | top-k | min-p |
 |---|---|---|---|---|
@@ -56,7 +56,7 @@ three samples and nothing more.  Nothing here licenses a change to the served
 configuration.
 
 **The stabiliser did not stabilise.**  Adding a `min_p` floor to the production
-profile — the one intervention with a mechanical story attached — produced the
+profile, the one intervention with a mechanical story attached, produced the
 joint-widest failure set and a spread of 2, against the unmodified profile's
 spread of 0.  The hypothesis was reasonable and the measurement declines it.
 
@@ -97,7 +97,7 @@ temperature 0.6.  It is not determinism, and it should not be reported as
 determinism.
 
 Nine of the ten tasks that fail anywhere are from the hard tier.  That is the
-tier doing its job — the core tier had ceilinged and could no longer separate
+tier doing its job.  The core tier had ceilinged and could no longer separate
 anything, which is why the hard tier exists.
 
 ## What generalises

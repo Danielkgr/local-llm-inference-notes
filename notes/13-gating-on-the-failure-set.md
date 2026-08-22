@@ -26,7 +26,7 @@ requires.
 Restating the decision that way splits the suite in two, and the halves are not
 symmetric:
 
-| tasks the baseline… | can disqualify? | can improve the verdict? |
+| Tasks the baseline | Can disqualify? | Can improve the verdict? |
 |---|---|---|
 | **passed** | yes | no |
 | **failed** | no | yes |
@@ -58,9 +58,9 @@ after the GPU time it exists to save.  The harness rejects the combination rathe
 than accepting it and quietly doing nothing.  A guard that cannot fire is worse
 than no guard, because it is also a claim that you are guarded.
 
-**A partial run is labelled as one.**  The results file records which selection
-produced it — tier, category, explicit task list, gate mode, baseline — and a
-boolean saying whether this was the complete suite.  A twelve-task gate must
+**The harness labels a partial run as partial.**  The results file records which
+selection produced it: tier, category, explicit task list, gate mode, baseline,
+and a boolean saying whether this was the complete suite.  A twelve-task gate must
 never be readable later as "12/50".  In the same spirit, an unknown task id is a
 hard error rather than a silently smaller run, and tasks absent from the baseline
 are reported rather than dropped, since they are neither passed nor failed there
@@ -84,7 +84,7 @@ budget running out, not a capability the incumbent lacks.
 That check cost one task and one minute.  Without it, the write-up would have
 claimed a capability difference on the strength of a row in a file, and the row
 was the same starvation artefact that has now produced a false negative on this
-machine repeatedly — at 300 tokens, at 500, and at 4,500.
+machine repeatedly, at 300 tokens, at 500, and at 4,500.
 
 So the rule the gate needed, and did not originally have: **a recovered task is a
 claim about the baseline, and the baseline is a file, not a measurement.**  Check

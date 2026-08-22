@@ -105,8 +105,8 @@ are the only correct answers.
 **Distinguish "wrong answer" from "no answer".**  An empty response is not a
 failure of capability, and an empty string trivially satisfies any
 does-not-contain check.  Count it separately or it will silently pass.  Record
-*why* it was empty next to the row — the finish reason and how much reasoning
-was produced — because a starved budget and a model that said nothing are
+*why* it was empty next to the row: the finish reason, and how much reasoning
+the model produced.  A starved budget and a model that said nothing are
 different findings that print as the same blank cell.
 
 **Compare failure sets, not totals, when the decision is adoption.**  A candidate

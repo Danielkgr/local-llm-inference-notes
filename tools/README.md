@@ -58,9 +58,9 @@ settings" is an instruction someone can actually follow.
 Adoption is a failure-set question, not a score question: **does the candidate
 fail anything the incumbent passes?**  A one- or two-point difference in totals
 is usually one flip-prone task, as [note 12](../notes/12-four-sampling-profiles-three-rankings.md)
-shows.  That reframing splits the suite along an asymmetry — only the tasks the
+shows.  That reframing splits the suite along an asymmetry: only the tasks the
 baseline *passed* can disqualify, and only the ones it *failed* can improve the
-verdict — so the disqualifying half runs first and can end early.
+verdict.  The disqualifying half therefore runs first, and can end early.
 
 ```sh
 # stage 1: only the tasks that can disqualify, most expensive first, stop at two
@@ -84,7 +84,7 @@ that produced it and a `complete_suite` flag, so a twelve-task gate can never be
 read back later as "12/50".
 
 A task the candidate *recovers* is a claim about the baseline file, not about
-the candidate — check it by re-running that task against the baseline model in
+the candidate.  Check it by re-running that task against the baseline model in
 the same sitting.  The first real use of this gate produced a recovery that
 turned out to be a token budget running out a week earlier.
 
@@ -96,8 +96,8 @@ empty content and a finish reason of `length`.  That is scored as an error in
 its own column, never as a pass and never as a content failure, and the row
 records the finish reason and the reasoning length so starvation is
 distinguishable from a model that genuinely said nothing.  On this machine
-budgets of 300, 500, 2000 and 4500 each produced a false capability finding —
-see [note 15](../notes/15-the-same-false-negative-five-times.md).
+budgets of 300, 500, 2000 and 4500 each produced a false capability finding.
+See [note 15](../notes/15-the-same-false-negative-five-times.md).
 
 Read [note 08](../notes/08-a-benchmark-with-no-judge.md) for the design position
 and the honest limits of this suite,

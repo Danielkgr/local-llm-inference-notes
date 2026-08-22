@@ -56,8 +56,8 @@ rebased once over a refactor without conflict.  Two things had to be established
 before it was worth sending anywhere.
 
 **Which repository owns the bug.**  The project is a fork.  The parent does not
-have this bug — its equivalent file has no `dtype` property at all, so the
-restructure in the fork is what introduced it.  Reporting to the parent would
+have this bug.  Its equivalent file has no `dtype` property at all, so the
+restructure in the fork introduced it.  Reporting to the parent would
 have been noise.
 
 **How to report it when the issue tracker is off.**  The fork has issues
@@ -75,10 +75,10 @@ Once upstream merged it, that script's job reversed.  It no longer restores
 anything.  It now asserts that the upstream fix is **still present** after each
 pull, and fails if it is not.
 
-That inversion is worth doing deliberately rather than deleting the script.  A
-fix absorbed upstream can be lost upstream — to a revert, a bad merge, a refactor
-that reintroduces the old expression — and the machine that suffered from the bug
-originally is the machine best placed to notice.  The local patch file was cut
+That inversion is worth doing deliberately rather than deleting the script.
+Upstream can lose a fix it absorbed, to a revert, a bad merge, or a refactor
+that reintroduces the old expression, and the machine that suffered from the
+bug originally is the machine best placed to notice.  The local patch file was cut
 down to its remaining half, with the merge commit recorded in its header and an
 explicit instruction not to re-apply the merged part.
 
@@ -90,10 +90,10 @@ language model.  The guard that decides whether to inject tests one marker key,
 under its prefixed name.
 
 Some models ship a real tower under the un-prefixed naming.  Those pass the
-guard — the prefixed key genuinely is absent — and then have a real tensor
-overwritten with zeros.  An upstream refactor made this sharper rather than
-milder, because the sentinel is now written to exactly the key a real tower
-occupies.
+guard, because the prefixed key genuinely is absent, and the injection then
+overwrites a real tensor with zeros.  An upstream refactor made this sharper
+rather than milder, because the sentinel is now written to exactly the key a
+real tower occupies.
 
 The fix is to test both namings, so the guard skips injection whenever a real
 tower is present under either convention.
@@ -115,7 +115,7 @@ behaviour today and cannot be justified is not.
 The third patch is a different kind.  A local model-serving application builds
 its load request from browser local storage, so a browser with no saved
 per-model settings sends a bare request and silently loses the server-stored
-configuration — untuned context length, no draft head, the wrong projector.  Two
+configuration: untuned context length, no draft head, the wrong projector.  Two
 clients, same model, different command lines, no error either way.
 
 The patch fills in the stored configuration for bare requests, and leaves alone

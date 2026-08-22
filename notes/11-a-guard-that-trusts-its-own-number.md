@@ -20,9 +20,9 @@ keys everybody reads, in a file that validates.
 
 With nothing found, the client fell back to inferring a limit from the model
 identifier by pattern.  The identifier missed the specific pattern that would
-have matched its family — the version number in the served name has no decimal
-point, and the pattern expects one — and fell through to a generic prefix rule
-worth 262,144.
+have matched its family, because the version number in the served name has no
+decimal point and the pattern expects one.  It fell through to a generic prefix
+rule worth 262,144.
 
 Two independent mechanisms, each individually reasonable, composing into a wrong
 answer with no diagnostic anywhere:
@@ -42,7 +42,7 @@ copied, which is what a working-looking configuration invites.
 Once a session is past the point of compacting, the manual route matters.  The
 model-based compressor requires roughly 20,000 tokens of headroom to summarise
 into, so at 120,084 of 131,072 it was already impossible.  It ran for seven
-minutes and returned a total token count of exactly 131,072 — truncated
+minutes and returned a total token count of exactly 131,072, truncated
 mid-summary, having spent the budget it was checking for.
 
 The rule-based compressor, which makes no model call at all, took the same
@@ -77,7 +77,7 @@ whenever the declaration is generous.**
 The honest scope of the damage is smaller than that sounds, and the reason is
 worth stating rather than eliding: no compaction model was configured, so
 compaction ran on the main model, not this one.  The over-declared provider was
-only serving prompt suggestions and speculative execution — small payloads.
+only serving prompt suggestions and speculative execution, both small payloads.
 Nothing had failed yet.  It would have failed on the first larger thing routed
 there.
 
@@ -126,7 +126,7 @@ file you are looking at.
   Endpoint constants are the obvious ones; declared limits are not, and they are
   the dangerous half.
 - When a mechanism fails to fire, check whether it *could* have fired.  The
-  threshold sat 90,000 tokens beyond the server's ceiling — a rule that no input
+  threshold sat 90,000 tokens beyond the server's ceiling, a rule that no input
   could ever satisfy, which is the same failure class as
   [note 09](09-when-the-harness-scores-itself.md)'s harness that could only ever
   return zero.
