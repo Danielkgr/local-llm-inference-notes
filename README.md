@@ -1,26 +1,25 @@
-<h1 align="center">Local LLM inference</h1>
+<div align="center">
 
-<p align="center">
-  <em>Fifteen investigations from one workstation: what the measurements showed,<br>
-  which results turned out to be artefacts, and which changes the machine now runs</em>
-</p>
+# Local LLM inference
 
-<p align="center">
-  <img alt="15 notes" src="https://img.shields.io/badge/notes-15-0969da?style=for-the-badge">
-  <img alt="8 of 15 verdicts are negative" src="https://img.shields.io/badge/negative_verdicts-8_of_15-cf222e?style=for-the-badge">
-  <img alt="5 tools" src="https://img.shields.io/badge/tools-5-1a7f37?style=for-the-badge">
-  <img alt="no LLM judges" src="https://img.shields.io/badge/LLM_judges-none-8250df?style=for-the-badge">
-  <img alt="MIT licence" src="https://img.shields.io/badge/licence-MIT-57606a?style=for-the-badge">
-</p>
+### Fifteen investigations from one workstation — what the measurements showed, which results turned out to be artefacts, and which changes the machine now runs
 
----
+<br>
+
+| | | | | |
+|---|---|---|---|---|
+| ![notes](https://img.shields.io/badge/notes-15-0969da?style=for-the-badge) | ![verdicts](https://img.shields.io/badge/negative_verdicts-8_of_15-cf222e?style=for-the-badge) | ![tools](https://img.shields.io/badge/tools-5-1a7f37?style=for-the-badge) | ![judges](https://img.shields.io/badge/LLM_judges_none-8250df?style=for-the-badge) | ![licence](https://img.shields.io/badge/licence-MIT-57606a?style=for-the-badge) |
+
+</div>
+
+<br>
 
 > Most published benchmark writing reports the changes that worked.  The
 > expensive knowledge sits in the changes that did not, and in the discipline
 > that separates the two.  **More than half of the verdicts here are negative**,
 > and several of them overturned a claim this repository had already published.
 
----
+<br>
 
 ## 1. The situation
 
@@ -37,7 +36,7 @@ therefore needed a measurement taken on the machine that would live with it.
 
 Measuring turned out to be the hard part.
 
----
+<br>
 
 ## 2. The problem
 
@@ -59,7 +58,7 @@ numbers usually looked like findings and were not.
 > number looked wrong caught none of them.  A procedure that ran whether or not
 > anything looked wrong caught all seven.
 
----
+<br>
 
 ## 3. The method
 
@@ -84,7 +83,7 @@ published.
 > **[METHOD.md](METHOD.md)** carries the full set of rules, each with the failure
 > behind it.
 
----
+<br>
 
 ## 4. The tooling
 
@@ -101,14 +100,14 @@ machine.  Defaults point at localhost.
 | [**context-readout.py**](tools/context-readout.py) | Measures how close real conversations come to each model's configured limit, before VRAM buys headroom nobody reaches. | |
 | [**resume-dl.py**](tools/resume-dl.py) | Verifies HTTP 206 before resuming a download, and refuses to start without a known target size. | |
 
----
+<br>
 
 ## 5. The result
 
 A measurement that ends in no decision is a hobby.  The machine now runs on
 these.
 
-🟢 adopted, 🔴 rejected, 🟡 adopted with something withdrawn, ⚪ deliberately unchanged
+> 🟢 adopted · 🔴 rejected · 🟡 adopted with something withdrawn · ⚪ deliberately unchanged
 
 | Decision | Outcome | Note |
 |---|---|:--:|
@@ -125,14 +124,14 @@ these.
 | Changing the served sampling profile | ⚪ **Left unchanged.**  Three repeats gave three rankings, so the difference does not resolve at that sample size. | [12](notes/12-four-sampling-profiles-three-rankings.md) |
 | A one-line fix carried against upstream | 🟢 **Sent upstream and merged.**  The script that re-applied it now works as a regression detector. | [10](notes/10-carrying-a-patch-against-upstream.md) |
 
----
+<br>
 
 ## The notes
 
 Every note follows the same shape: a question, a noise band declared before the
 run, a measurement, and a verdict.
 
-🔴 the answer was no, or the effect was not real; 🟡 mixed; 🟢 it worked
+> 🔴 the answer was no, or the effect was not real · 🟡 mixed · 🟢 it worked
 
 | # | Note | Question | Verdict |
 |:--:|---|---|---|
@@ -161,7 +160,7 @@ discipline: `05` `08` `09` `12` `13` `15`.  Systems, verifiers, and patches:
 > [note 15](notes/15-the-same-false-negative-five-times.md) show best what this
 > repository is for.
 
----
+<br>
 
 ## Environment
 
@@ -179,7 +178,7 @@ Where a note compares results from both machines, pass rates are comparable and
 timings are not.  The same weights under greedy decoding score the same
 anywhere, while tokens per second is a property of the hardware.
 
----
+<br>
 
 ## Licence
 
