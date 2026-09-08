@@ -2,7 +2,7 @@
 
 # Local LLM inference
 
-### Fifteen investigations from one workstation — what the measurements showed, which results turned out to be artefacts, and which changes the machine now runs
+### Fifteen investigations from one workstation: what the measurements showed, which results turned out to be artefacts, and which changes the machine now runs
 
 <br>
 
