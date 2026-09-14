@@ -2,9 +2,9 @@
 
 # Local LLM inference
 
-### Fifteen investigations on one 24 GB workstation, including the results that turned out to be wrong
+### Sixteen investigations on one 24 GB workstation, including the results that turned out to be wrong
 
-![15 notes](https://img.shields.io/badge/notes-15-0969da?style=for-the-badge) ![8 of 15 verdicts negative](https://img.shields.io/badge/negative_verdicts-8_of_15-cf222e?style=for-the-badge) ![5 tools](https://img.shields.io/badge/tools-5-0969da?style=for-the-badge) ![no LLM judges](https://img.shields.io/badge/LLM_judges-none-8250df?style=for-the-badge) ![MIT licence](https://img.shields.io/badge/licence-MIT-57606a?style=for-the-badge)
+![16 notes](https://img.shields.io/badge/notes-16-0969da?style=for-the-badge) ![8 of 16 verdicts negative](https://img.shields.io/badge/negative_verdicts-8_of_16-cf222e?style=for-the-badge) ![5 tools](https://img.shields.io/badge/tools-5-0969da?style=for-the-badge) ![no LLM judges](https://img.shields.io/badge/LLM_judges-none-8250df?style=for-the-badge) ![MIT licence](https://img.shields.io/badge/licence-MIT-57606a?style=for-the-badge)
 
 </div>
 
@@ -125,8 +125,9 @@ Every note follows the same shape.  It asks a question, declares a noise band be
 | **13** | [Gating on the failure set](notes/13-gating-on-the-failure-set.md) | Can a model be adopted from fewer tasks without weakening the decision? | 🟡 **Yes.**  Only the tasks the incumbent passed can disqualify, and a recovery needs a control too. |
 | **14** | [Six upstream bumps rejected](notes/14-six-upstream-bumps-rejected.md) | Is staying 149 releases behind a maintenance failure? | 🔴 **No.**  Six candidates measured, six flat or worse. |
 | **15** | [The same false negative, five times](notes/15-the-same-false-negative-five-times.md) | A reasoning model returns an empty string.  How often can one machine misread that? | 🔴 **Five**, across four harnesses.  Raising the budget four times did not stop it. |
+| **16** | [The approval gate that blocked its own linter](notes/16-the-approval-gate-that-blocked-its-own-linter.md) | The agent harness was already hardened.  Was it safe, and was it fast? | 🟡 **Neither, quite.**  Five agents shared one slot, and the new approval rule blocked the linter it was added to protect. |
 
-Notes `01`, `02`, `03`, `06`, and `14` cover backends and upgrades.  Notes `05`, `08`, `09`, `12`, `13`, and `15` cover measurement discipline.  Notes `04`, `07`, `10`, and `11` cover systems, verifiers, and patches.
+Notes `01`, `02`, `03`, `06`, and `14` cover backends and upgrades.  Notes `05`, `08`, `09`, `12`, `13`, and `15` cover measurement discipline.  Notes `04`, `07`, `10`, `11`, and `16` cover systems, verifiers, and patches.
 
 > [!NOTE]
 > If you read two notes, read [note 09](notes/09-when-the-harness-scores-itself.md) and [note 15](notes/15-the-same-false-negative-five-times.md).  They show best what this repository is for.
@@ -138,7 +139,7 @@ Notes `01`, `02`, `03`, `06`, and `14` cover backends and upgrades.  Notes `05`,
 | Component | Serving box | Always-on tier |
 |---|---|---|
 | **GPU** | AMD Radeon RX 7900 XTX, 24 GB, gfx1100 | AMD Strix Halo APU, unified LPDDR5X |
-| **Host** | Intel i5-14600KF, 48 GB DDR4, Ubuntu 26.04 LTS, kernel 7.0.0-30 | Same LAN, added part way through |
+| **Host** | Intel i5-14600KF, 96 GB DDR4, Ubuntu 26.04.1 LTS, kernel 7.0.0-31 | Same LAN, added part way through |
 | **Runs** | llama.cpp behind llama-swap, Open WebUI front end, ComfyUI for images | Embedding, reranking, the small fast model, speech to text and back, plus one resident coding model that is never evicted |
 
 The serving box moved from Ubuntu 24.04 to 26.04 during the period these notes cover.  Each measurement ran on the version current at the time, and every note states its own conditions where they matter.
