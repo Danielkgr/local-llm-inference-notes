@@ -2,37 +2,23 @@
 
 # Local LLM inference
 
-### Fifteen investigations from one workstation: what the measurements showed, which results turned out to be artefacts, and which changes the machine now runs
+### Fifteen investigations on one 24 GB workstation, including the results that turned out to be wrong
 
-<br>
-
-| | | | | |
-|---|---|---|---|---|
-| ![notes](https://img.shields.io/badge/notes-15-0969da?style=for-the-badge) | ![verdicts](https://img.shields.io/badge/negative_verdicts-8_of_15-cf222e?style=for-the-badge) | ![tools](https://img.shields.io/badge/tools-5-1a7f37?style=for-the-badge) | ![judges](https://img.shields.io/badge/LLM_judges_none-8250df?style=for-the-badge) | ![licence](https://img.shields.io/badge/licence-MIT-57606a?style=for-the-badge) |
+![15 notes](https://img.shields.io/badge/notes-15-0969da?style=for-the-badge) ![8 of 15 verdicts negative](https://img.shields.io/badge/negative_verdicts-8_of_15-cf222e?style=for-the-badge) ![5 tools](https://img.shields.io/badge/tools-5-0969da?style=for-the-badge) ![no LLM judges](https://img.shields.io/badge/LLM_judges-none-8250df?style=for-the-badge) ![MIT licence](https://img.shields.io/badge/licence-MIT-57606a?style=for-the-badge)
 
 </div>
 
 <br>
 
-> Most published benchmark writing reports the changes that worked.  The
-> expensive knowledge sits in the changes that did not, and in the discipline
-> that separates the two.  **More than half of the verdicts here are negative**,
-> and several of them overturned a claim this repository had already published.
+> Most published benchmark writing reports the changes that worked.  The expensive knowledge sits in the changes that did not, and in the discipline that separates the two.  **More than half of the verdicts here are negative**, and several of them overturned a claim this repository had already published.
 
 <br>
 
 ## 1. The situation
 
-One workstation runs everything: chat, agentic coding, retrieval, and image
-generation, all from a single 24 GB card.  Every decision competes for the same
-memory.  A larger quantisation costs context.  Context costs KV cache.  A
-speculative decoding head costs 1.5 GiB, which on one model cut usable working
-context by a factor of six.
+One workstation runs chat, agentic coding, retrieval, and image generation, all from a single 24 GB card.  Every decision competes for the same memory.  A larger quantisation costs context.  Context costs KV cache.  A speculative decoding head costs 1.5 GiB, which on one model cut usable working context by a factor of six.
 
-Published benchmarks settle none of it.  They ran on other hardware, at other
-context depths, with other flags, and the differences that matter here are
-frequently smaller than the differences between two machines.  Every decision
-therefore needed a measurement taken on the machine that would live with it.
+Published benchmarks settle none of it.  They ran on other hardware, at other context depths, with other flags, and the differences that matter here are often smaller than the differences between two machines.  Every decision therefore needed a measurement taken on the machine that would live with it.
 
 Measuring turned out to be the hard part.
 
@@ -40,8 +26,7 @@ Measuring turned out to be the hard part.
 
 ## 2. The problem
 
-Getting numbers was never the difficulty.  The difficulty was that the first
-numbers usually looked like findings and were not.
+Getting numbers was never the difficulty.  The difficulty was that the first numbers usually looked like findings and were not.
 
 | It looked like | It actually was | Note |
 |---|---|:--:|
@@ -54,24 +39,20 @@ numbers usually looked like findings and were not.
 | A backup that **exited zero** | An archive missing the inference binary the machine actually runs. | [07](notes/07-when-the-verifier-is-wrong.md) |
 
 > [!WARNING]
-> Every one of those was on its way into the record as a fact.  Noticing that a
-> number looked wrong caught none of them.  A procedure that ran whether or not
-> anything looked wrong caught all seven.
+> Every one of those was on its way into the record as a fact.  Noticing that a number looked wrong caught none of them.  A procedure that ran whether or not anything looked wrong caught all seven.
 
 <br>
 
 ## 3. The method
 
-More measurements do not fix this.  A fixed procedure does, and every rule below
-earns its place because breaking it produced a wrong result that was about to be
-published.
+More measurements do not fix this.  A fixed procedure does, and every rule below earns its place because breaking it produced a wrong result that was about to be published.
 
 | Rule | The failure that bought it | Note |
 |---|---|:--:|
 | Declare the noise band **before** the run | A band chosen after seeing the numbers is a rationalisation, not a band | |
-| Take three samples and a warm-up; report medians **and the spread** | Decode spread jumped on two runs while prefill held steady, the signature of contention rather than an effect, so the spread check excluded both | [05](notes/05-the-control-that-killed-a-false-claim.md) |
+| Take three samples after a warm-up, and report medians **and the spread** | Decode spread jumped on two runs while prefill held steady, the signature of contention rather than an effect, so the spread check excluded both | [05](notes/05-the-control-that-killed-a-false-claim.md) |
 | Measure a control in the same sitting, even when a baseline exists | A week-old baseline turned a 3.4% null into an apparent 7 tok/s win | [05](notes/05-the-control-that-killed-a-false-claim.md) |
-| Alternate the arms; never run them in blocks | Block-sequential A/B fabricated a regression that interleaving disproved | |
+| Alternate the arms rather than running them in blocks | Block-sequential A/B fabricated a regression that interleaving disproved | |
 | Assert library provenance in both directions, from `/proc/PID/maps` | A benchmark that silently measures the same libraries twice returns a very convincing null | [01](notes/01-rocm-714-evaluation.md) |
 | Test the invariant the technique promises, not output quality | Greedy speculative decoding must produce identical output, so a single diff settles it | [03](notes/03-speculative-decoding-is-lossy.md) |
 | Never use a model to grade models | A judge makes the result depend on the very thing under test | [08](notes/08-a-benchmark-with-no-judge.md) |
@@ -80,17 +61,13 @@ published.
 | Print the token budget in the output | Four different budgets produced four false capability findings | [15](notes/15-the-same-false-negative-five-times.md) |
 
 > [!TIP]
-> **[METHOD.md](METHOD.md)** carries the full set of rules, each with the failure
-> behind it.
+> **[METHOD.md](METHOD.md)** carries the full set of rules, each with the failure behind it.
 
 <br>
 
 ## 4. The tooling
 
-A rule that a program can enforce should not depend on attention.  Five proved
-worth extracting.  Each runs standalone, depends on little, and takes every path
-and endpoint as a flag or an environment variable, so it works away from this
-machine.  Defaults point at localhost.
+A rule that a program can enforce should not depend on attention.  Five proved worth extracting.  Each runs standalone, depends on little, and takes every path and endpoint as a flag or an environment variable, so it works away from this machine.  Defaults point at localhost.
 
 | Tool | What it enforces | Notes |
 |---|---|:--:|
@@ -104,10 +81,9 @@ machine.  Defaults point at localhost.
 
 ## 5. The result
 
-A measurement that ends in no decision is a hobby.  The machine now runs on
-these.
+A measurement that ends in no decision is a hobby.  The machine now runs on these.
 
-> 🟢 adopted · 🔴 rejected · 🟡 adopted with something withdrawn · ⚪ deliberately unchanged
+> 🟢 adopted, 🔴 rejected, 🟡 adopted with a claim withdrawn, ⚪ deliberately unchanged
 
 | Decision | Outcome | Note |
 |---|---|:--:|
@@ -117,7 +93,7 @@ these.
 | A newly published 4-bit quantisation | 🔴 **Discarded rather than tuned.**  One greedy call located the fault in the weights. | [04](notes/04-diagnosing-a-broken-quant.md) |
 | A q4_0 KV cache | 🟡 **Adopted** for the context it buys.  A stale baseline had produced the apparent decode gain, so that claim came out. | [05](notes/05-the-control-that-killed-a-false-claim.md) |
 | An LTS operating system upgrade | 🟢 **Taken early, and deliberately**, against a written rollback rather than the judgement of the day. | [06](notes/06-migrating-under-a-written-go-no-go.md) |
-| Six successive engine builds | 🔴 **All six rejected.**  A dense arm and a speculative arm measured each candidate; none beat the incumbent. | [14](notes/14-six-upstream-bumps-rejected.md) |
+| Six successive engine builds | 🔴 **All six rejected.**  A dense arm and a speculative arm measured each candidate, and none beat the incumbent. | [14](notes/14-six-upstream-bumps-rejected.md) |
 | A graphics driver point release | 🟢 **Adopted.**  Nothing moved measurably, which is precisely the result that makes it safe. | [14](notes/14-six-upstream-bumps-rejected.md) |
 | A kernel bump, with nobody at the machine | 🟢 **Adopted** behind a one-shot boot entry and an automatic post-boot render test. | [14](notes/14-six-upstream-bumps-rejected.md) |
 | Two candidate models | 🟢 **Cleared the gate on dominance.**  A third candidate regressed, and the harness restored the incumbent automatically. | [13](notes/13-gating-on-the-failure-set.md) |
@@ -128,10 +104,9 @@ these.
 
 ## The notes
 
-Every note follows the same shape: a question, a noise band declared before the
-run, a measurement, and a verdict.
+Every note follows the same shape.  It asks a question, declares a noise band before the run, takes a measurement, and ends in a verdict.
 
-> 🔴 the answer was no, or the effect was not real · 🟡 mixed · 🟢 it worked
+> 🔴 the answer was no or the effect was not real, 🟡 mixed, 🟢 it worked
 
 | # | Note | Question | Verdict |
 |:--:|---|---|---|
@@ -151,14 +126,10 @@ run, a measurement, and a verdict.
 | **14** | [Six upstream bumps rejected](notes/14-six-upstream-bumps-rejected.md) | Is staying 149 releases behind a maintenance failure? | 🔴 **No.**  Six candidates measured, six flat or worse. |
 | **15** | [The same false negative, five times](notes/15-the-same-false-negative-five-times.md) | A reasoning model returns an empty string.  How often can one machine misread that? | 🔴 **Five**, across four harnesses.  Raising the budget four times did not stop it. |
 
-**By theme.** Backends and upgrades: `01` `02` `03` `06` `14`.  Measurement
-discipline: `05` `08` `09` `12` `13` `15`.  Systems, verifiers, and patches:
-`04` `07` `10` `11`.
+Notes `01`, `02`, `03`, `06`, and `14` cover backends and upgrades.  Notes `05`, `08`, `09`, `12`, `13`, and `15` cover measurement discipline.  Notes `04`, `07`, `10`, and `11` cover systems, verifiers, and patches.
 
 > [!NOTE]
-> New here?  [Note 09](notes/09-when-the-harness-scores-itself.md) and
-> [note 15](notes/15-the-same-false-negative-five-times.md) show best what this
-> repository is for.
+> If you read two notes, read [note 09](notes/09-when-the-harness-scores-itself.md) and [note 15](notes/15-the-same-false-negative-five-times.md).  They show best what this repository is for.
 
 <br>
 
@@ -170,13 +141,9 @@ discipline: `05` `08` `09` `12` `13` `15`.  Systems, verifiers, and patches:
 | **Host** | Intel i5-14600KF, 48 GB DDR4, Ubuntu 26.04 LTS, kernel 7.0.0-30 | Same LAN, added part way through |
 | **Runs** | llama.cpp behind llama-swap, Open WebUI front end, ComfyUI for images | Embedding, reranking, the small fast model, speech to text and back, plus one resident coding model that is never evicted |
 
-The serving box moved from Ubuntu 24.04 to 26.04 during the period these notes
-cover.  Each measurement ran on the version current at the time, and every note
-states its own conditions where they matter.
+The serving box moved from Ubuntu 24.04 to 26.04 during the period these notes cover.  Each measurement ran on the version current at the time, and every note states its own conditions where they matter.
 
-Where a note compares results from both machines, pass rates are comparable and
-timings are not.  The same weights under greedy decoding score the same
-anywhere, while tokens per second is a property of the hardware.
+Where a note compares results from both machines, pass rates are comparable and timings are not.  The same weights under greedy decoding score the same anywhere, while tokens per second is a property of the hardware.
 
 <br>
 
