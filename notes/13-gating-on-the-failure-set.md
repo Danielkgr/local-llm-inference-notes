@@ -14,9 +14,10 @@ minutes.  The catch found on the first real use: a task the candidate appears to
 ## Why not compare totals
 
 [Note 12](12-four-sampling-profiles-three-rankings.md) settled this on the same
-suite: across twelve runs of one model, ten of fifty tasks flipped at least once,
-and a three-point gap in one sitting evaporated over three.  A one- or two-point
-difference between two models is, on this suite, usually one coin-flip task.
+suite: across twelve runs of one model, seven of fifty tasks flipped at least
+once, and a three-point gap in one sitting evaporated over three.  A one- or
+two-point difference between two models is, on this suite, usually one coin-flip
+task.
 
 The claim worth making instead is dominance: **the candidate fails nothing the
 incumbent passes.**  That is a statement about sets, it is robust to a task or
