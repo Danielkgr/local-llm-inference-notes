@@ -27,7 +27,7 @@ rule worth 262,144.
 Two independent mechanisms, each individually reasonable, composing into a wrong
 answer with no diagnostic anywhere:
 
-| | value |
+| quantity | value |
 |---|---|
 | server `n_ctx` | 131,072 |
 | client's belief | 262,144 |

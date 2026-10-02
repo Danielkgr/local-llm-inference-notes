@@ -51,6 +51,6 @@ sampler values the model card specified.
 
 ## Cost of not having this rule
 
-Before adopting it, roughly a day went into sampler sweeps and template swaps
-against a file that could never have worked.  The test that would have settled it
-takes one API call and about two seconds.
+Before this rule existed, roughly a day went into sampler sweeps and template
+swaps against a file that could never have worked.  The test that would have
+settled it takes one API call and about two seconds.
