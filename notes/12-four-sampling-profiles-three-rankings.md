@@ -41,8 +41,8 @@ core tier because the core tier ceilings.
 Read the columns rather than the means:
 
 - **Sitting 1** ranks low temperature first by three points, vendor card last.
-- **Sitting 2** has vendor card, low temperature and min-p tied at the top, with
-  production alone at the bottom.
+- **Sitting 2** has vendor card, low temperature, and min-p tied at the top,
+  with production alone at the bottom.
 - **Sitting 3** puts low temperature first again, with min-p last.
 
 Any one of those sittings, written up alone, is a finding.  A three-point gap on

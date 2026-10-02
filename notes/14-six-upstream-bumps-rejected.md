@@ -97,7 +97,7 @@ the person who would fix it was interstate.  A live-patch service covered the
 running kernel for another year, so there was no urgency, only an outstanding
 retest of a memory-management fix that had previously caused a hang class here.
 
-Rather than defer it indefinitely, the reboot was made self-gating:
+The alternative to deferring it indefinitely was a reboot that gates itself:
 
 1. Install the new kernel packages, but leave the **default boot entry pinned to
    the proven kernel**, so any power cycle recovers on its own.

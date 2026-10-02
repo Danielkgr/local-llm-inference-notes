@@ -53,7 +53,7 @@ Six of the failures were not wrong answers.  They were empty:
 The model spent its entire budget on `reasoning_content` and returned no content
 at all.  The harness had temperature hardcoded to 0, which is structurally unable
 to measure a model that loops under greedy decoding.  Run at its own recommended
-sampling, on the same 50 task suite, the same model scored **50/50 with zero
+sampling, on the same 50-task suite, the same model scored **50/50 with zero
 errors**.
 
 A 12 per cent gap was reported as a capability difference.  It was a sampling
