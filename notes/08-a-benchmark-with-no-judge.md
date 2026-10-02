@@ -1,9 +1,9 @@
 # A benchmark with no LLM judge, and the ceiling it hit twice
 
-**Question.** Can you rank local models for your own work with a number rather
+**Question.**  Can you rank local models for your own work with a number rather
 than a feeling, without using a model to grade models?
 
-**Verdict.** Yes for the grading.  Deterministic graders are cheap, unarguable,
+**Verdict.**  Yes for the grading.  Deterministic graders are cheap, unarguable,
 and caught real regressions.  No for the difficulty calibration: the suite
 ceilinged, the fix for the ceiling also ceilinged, and the second failure was
 visible in the first run after it shipped.

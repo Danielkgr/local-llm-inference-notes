@@ -1,9 +1,9 @@
 # Two eval runs that scored the harness instead of the model
 
-**Question.** A model scores 0/50 on one run and 44/50 on another.  How do you
+**Question.**  A model scores 0/50 on one run and 44/50 on another.  How do you
 know either number is about the model?
 
-**Verdict.** Neither was.  Both results came from the harness, and both would
+**Verdict.**  Neither was.  Both results came from the harness, and both would
 have been quoted as capability findings if the failure rows had not been recorded
 alongside the scores.
 
@@ -59,7 +59,7 @@ errors**.
 A 12 per cent gap was reported as a capability difference.  It was a sampling
 choice belonging to the harness.
 
-**Sourcing caveat.** Those two runs do not record their sampling settings.  The
+**Sourcing caveat.**  Those two runs do not record their sampling settings.  The
 attribution rests on the file naming and the harness's own change history, not on
 the result files.  That is a real weakness in the evidence, and it is exactly the
 weakness the third fix below addresses.

@@ -1,10 +1,10 @@
 # A guard that trusts the number it was given
 
-**Question.** An agentic client has automatic context compaction.  It died at
+**Question.**  An agentic client has automatic context compaction.  It died at
 120,084 tokens against a server configured for 131,072, having never once
 attempted to compact.  Why did the safety mechanism never fire?
 
-**Verdict.** Because it fired on a declared number rather than a measured one,
+**Verdict.**  Because it fired on a declared number rather than a measured one,
 and the declared number was 262,144.  Compaction was scheduled for a point the
 server would reject 100,000 tokens earlier.  It was not late.  It was
 unreachable.

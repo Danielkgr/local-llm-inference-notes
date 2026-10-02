@@ -1,11 +1,11 @@
 # A gate that only runs the tasks that can disqualify
 
-**Question.** Adopting a candidate model means running the suite twice, once per
+**Question.**  Adopting a candidate model means running the suite twice, once per
 model, and comparing.  Most of that GPU time is spent confirming things both
 models already do.  Can the decision be made from fewer tasks without weakening
 it?
 
-**Verdict.** Yes, once the decision is stated as a failure-set comparison rather
+**Verdict.**  Yes, once the decision is stated as a failure-set comparison rather
 than a score comparison.  Only the tasks the incumbent **passed** can disqualify
 a candidate, and running those first, hardest first, ends a doomed evaluation in
 minutes.  The catch found on the first real use: a task the candidate appears to

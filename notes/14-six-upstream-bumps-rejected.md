@@ -1,9 +1,9 @@
 # Six upstream bumps in a row, all rejected
 
-**Question.** The inference engine has moved 149 tagged releases past the build
+**Question.**  The inference engine has moved 149 tagged releases past the build
 this machine runs.  Is staying put a maintenance failure?
 
-**Verdict.** No.  Six consecutive candidates have been built, measured against
+**Verdict.**  No.  Six consecutive candidates have been built, measured against
 the live build on both arms, and rejected as flat or worse.  Two adjacent
 upgrades in the same period, a graphics driver and a kernel, were adopted, and
 both required the same measurement discipline as the engine bumps.
