@@ -10,7 +10,7 @@
 
 <br>
 
-> Most published benchmark writing reports the changes that worked.  The expensive knowledge sits in the changes that did not, and in the discipline that separates the two.  **More than half of the verdicts here are negative**, and several of them overturned a claim this repository had already published.
+> Most published benchmark writing reports the changes that worked.  The expensive knowledge sits in the changes that did not, and in the discipline that separates the two.  **Half of the verdicts here are negative**, and several of them overturned a claim this repository had already published.
 
 <br>
 
@@ -58,7 +58,7 @@ More measurements do not fix this.  A fixed procedure does, and every rule below
 | Never use a model to grade models | A judge makes the result depend on the very thing under test | [08](notes/08-a-benchmark-with-no-judge.md) |
 | Repeat one configuration before comparing two | An unmeasured noise floor makes every gap unfalsifiable | [12](notes/12-four-sampling-profiles-three-rankings.md) |
 | Compare failure sets, not totals | A one- or two-point gap is usually one coin-flip task | [13](notes/13-gating-on-the-failure-set.md) |
-| Print the token budget in the output | Four different budgets produced four false capability findings | [15](notes/15-the-same-false-negative-five-times.md) |
+| Print the token budget in the output | Five different budgets produced five false capability findings | [15](notes/15-the-same-false-negative-five-times.md) |
 
 > [!TIP]
 > **[METHOD.md](METHOD.md)** carries the full set of rules, each with the failure behind it.
@@ -88,7 +88,7 @@ A measurement that ends in no decision is a hobby.  The machine now runs on thes
 | Decision | Outcome | Note |
 |---|---|:--:|
 | ROCm 7.14 for the serving tier | 🔴 **Rejected.**  Flat on llama.cpp across every arm, and the PyTorch side did not work at all. | [01](notes/01-rocm-714-evaluation.md) |
-| Mesa Vulkan in place of ROCm | 🟢 **Adopted.**  Decode rose 60.9% on the production chat model.  Measurement also found two carve-outs the prose had missed. | [02](notes/02-vulkan-vs-rocm.md) |
+| Mesa Vulkan in place of ROCm | 🟢 **Adopted.**  Decode rose 60.9% on the production chat model.  Two models stayed on ROCm at first, and a later check found every served model on Vulkan. | [02](notes/02-vulkan-vs-rocm.md) |
 | n-gram speculative decoding | 🔴 **Rejected.**  Every faster variant changed the output, and the fastest truncated it. | [03](notes/03-speculative-decoding-is-lossy.md) |
 | A newly published 4-bit quantisation | 🔴 **Discarded rather than tuned.**  One greedy call located the fault in the weights. | [04](notes/04-diagnosing-a-broken-quant.md) |
 | A q4_0 KV cache | 🟡 **Adopted** for the context it buys.  A stale baseline had produced the apparent decode gain, so that claim came out. | [05](notes/05-the-control-that-killed-a-false-claim.md) |
@@ -104,14 +104,14 @@ A measurement that ends in no decision is a hobby.  The machine now runs on thes
 
 ## The notes
 
-Every note follows the same shape.  It asks a question, declares a noise band before the run, takes a measurement, and ends in a verdict.
+Most notes follow the same shape.  They ask a question, give the verdict up front, and then show the evidence behind it.
 
 > 🔴 the answer was no or the effect was not real, 🟡 mixed, 🟢 it worked
 
 | # | Note | Question | Verdict |
 |:--:|---|---|---|
 | **01** | [ROCm 7.14 evaluation](notes/01-rocm-714-evaluation.md) | Is the newer ROCm worth adopting? | 🔴 **No.**  Flat on llama.cpp, broken on PyTorch. |
-| **02** | [Vulkan vs ROCm](notes/02-vulkan-vs-rocm.md) | Can the Mesa Vulkan backend replace ROCm for serving? | 🟢 **Yes**, by a wide margin, with two named carve-outs. |
+| **02** | [Vulkan vs ROCm](notes/02-vulkan-vs-rocm.md) | Can the Mesa Vulkan backend replace ROCm for serving? | 🟢 **Yes**, by a wide margin.  Both carve-outs have since gone. |
 | **03** | [Speculative decoding is lossy](notes/03-speculative-decoding-is-lossy.md) | Are the n-gram speculative speedups real? | 🔴 **No.**  Every faster variant changed the output. |
 | **04** | [Diagnosing a broken quant](notes/04-diagnosing-a-broken-quant.md) | Bad weights, or bad config? | 🟢 One greedy call separates them. |
 | **05** | [The control that killed a false claim](notes/05-the-control-that-killed-a-false-claim.md) | Does a q4_0 KV cache buy back context for free? | 🟡 Yes on VRAM.  A stale baseline produced the decode gain. |
