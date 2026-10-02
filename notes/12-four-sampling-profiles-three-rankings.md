@@ -1,9 +1,9 @@
 # Four sampling profiles, three repeats, three different rankings
 
-**Question.** Does the sampling profile a model is served under change how well
+**Question.**  Does the sampling profile a model is served under change how well
 it scores, and by enough to justify changing it?
 
-**Verdict.** Not measurably, at three repeats.  Three of the four profiles landed
+**Verdict.**  Not measurably, at three repeats.  Three of the four profiles landed
 on exactly the same mean.  More usefully, running each profile three times
 produced three different league tables from the same twelve runs, and the
 profile that came last in the first sitting was joint first in the second.
