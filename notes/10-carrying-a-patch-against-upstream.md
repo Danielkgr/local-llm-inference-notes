@@ -149,7 +149,7 @@ state will eventually include values the UI derived from the server.
   machine that found the bug is the one that will notice its return.
 - Establish which repository owns the bug before reporting it.  A fork's
   regression is not the parent's bug.
-- No repro, no report.  Code-reading is enough to justify carrying a patch
+- No repro, no report.  Code reading is enough to justify carrying a patch
   yourself; it is not enough to spend a maintainer's time.
 - A patch that is inert on everything you currently run costs nothing to keep and
   is not evidence that it works.  Say which of those two claims you are making.
