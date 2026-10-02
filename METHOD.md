@@ -37,7 +37,7 @@ identical prompts produce nonsense prefill figures that look like enormous wins.
 **Measure the noise floor of a graded suite before comparing two configurations
 on it.**  Repeat one configuration three times and see what moves.  Four sampling
 profiles run three times each produced three different rankings from the same
-twelve runs, and a three-point lead in the first sitting was gone by the third.
+twelve runs, and a three-point gap in the first sitting was gone by the third.
 See [note 12](notes/12-four-sampling-profiles-three-rankings.md).
 
 **Print the token budget in the output, and treat any capped run as measuring
