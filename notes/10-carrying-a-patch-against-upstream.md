@@ -1,9 +1,9 @@
 # Three patches carried against upstream, and how one of them ended
 
-**Question.** A dependency has a bug you can fix in one line.  What does it cost to
+**Question.**  A dependency has a bug you can fix in one line.  What does it cost to
 carry that fix locally, and what has to be true before it stops being yours?
 
-**Verdict.** One patch went upstream and is now pristine upstream code, which
+**Verdict.**  One patch went upstream and is now pristine upstream code, which
 inverted the job of the script that maintained it.  One stays local and
 unsubmitted, because the only model that reproduced it was deleted and a bug
 report you cannot demonstrate is a guess.  One is a third species entirely: a

@@ -1,9 +1,9 @@
 # Every speculative decoding variant that went faster changed the output
 
-**Question.** llama.cpp offers several n-gram speculative decoding modes.  Some
+**Question.**  llama.cpp offers several n-gram speculative decoding modes.  Some
 of them showed large throughput gains on a production model.  Were the gains real?
 
-**Verdict.** No.  Greedy speculative decoding must be output-identical to greedy
+**Verdict.**  No.  Greedy speculative decoding must be output-identical to greedy
 decoding by construction.  Every variant that produced a speedup diverged from
 the baseline text, so none were adopted.
 

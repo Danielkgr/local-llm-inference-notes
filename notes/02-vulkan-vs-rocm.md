@@ -1,11 +1,11 @@
 # Vulkan beat ROCm for LLM serving on a 7900 XTX
 
-**Question.** Asked at the end of a ROCm evaluation that had returned nothing:
+**Question.**  Asked at the end of a ROCm evaluation that had returned nothing:
 the Mesa RADV Vulkan driver ships with every Ubuntu install.  Could the llama.cpp
 Vulkan backend replace the ROCm backend for serving, and remove the ROCm
 userspace dependency entirely?
 
-**Verdict.** Yes, and by a wide margin, with two carve-outs that had to be found
+**Verdict.**  Yes, and by a wide margin, with two carve-outs that had to be found
 by measurement rather than assumed.
 
 ## Harness

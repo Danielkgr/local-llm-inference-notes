@@ -1,11 +1,11 @@
 # Broken weights or bad config? One greedy call tells you
 
-**Problem.** A newly published 4-bit quantisation of a 27B model loaded with no
+**Problem.**  A newly published 4-bit quantisation of a 27B model loaded with no
 warnings, then degenerated into a repeated single token.  The obvious suspects
 were sampler settings, the chat template, or the quantisation itself.  Each has a
 different and expensive fix.
 
-**The test.** Send one short prompt at temperature 0.
+**The test.**  Send one short prompt at temperature 0.
 
 Greedy decoding removes the sampler from the equation entirely: at temperature 0
 there is no randomness left for a repetition penalty, a top-k, or a min-p value

@@ -1,10 +1,10 @@
 # The control run that killed a result I was about to publish
 
-**Question.** A 31B model was serving at 40960 context with 1.55 GiB of VRAM free,
+**Question.**  A 31B model was serving at 40960 context with 1.55 GiB of VRAM free,
 which is uncomfortably thin on a 24 GB card.  Would a q4_0 KV cache buy back a
 larger context, and possibly vision, without costing long-context recall?
 
-**Verdict.** Yes on context.  But the decode "gain" the first pass appeared to
+**Verdict.**  Yes on context.  But the decode "gain" the first pass appeared to
 show was an artefact of comparing against a week-old number, and does not exist.
 
 ## Method
@@ -19,7 +19,7 @@ Three details did real work:
   port, rather than wall-clock through the proxy in front of it.  The convenient
   in-house benchmark script measures through a different application on a
   different build, so it was deliberately not used.
-- **Every prompt carried a per-request nonce.** This box has previously produced
+- **Every prompt carried a per-request nonce.**  This box has previously produced
   nonsense prefill figures from prompt-cache hits on repeated identical prompts.
   A nonce guarantees prefill is real work each time.
 - **A same-sitting control was measured**, even though the brief said the
@@ -38,7 +38,7 @@ Against the recorded number, q4_0 looks like a 7 tok/s decode win.  Against the
 control measured minutes earlier on the same harness, the honest delta is 2.1
 tok/s, or 3.4 per cent, which sits inside the noise band.
 
-**q4_0 KV is decode-neutral.  The win is purely VRAM.** Had the control been
+**q4_0 KV is decode-neutral.  The win is purely VRAM.**  Had the control been
 skipped as redundant, this note would have reported a performance improvement
 that does not exist, and it would have been reported in good faith.
 
