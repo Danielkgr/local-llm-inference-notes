@@ -1,10 +1,10 @@
 # ROCm 7.14 on gfx1100: a null result, and a broken PyTorch tier
 
-**Question.** ROCm 7.14 was available as a TheRock tarball while the box ran
+**Question.**  ROCm 7.14 was available as a TheRock tarball while the box ran
 7.2.4.  Was it worth adopting for either the llama.cpp serving tier or the
 PyTorch image-generation tier?
 
-**Verdict.** No, on both counts, for different reasons.  The llama.cpp tier is
+**Verdict.**  No, on both counts, for different reasons.  The llama.cpp tier is
 flat to within noise across every architecture and context length tested.  The
 PyTorch tier is not slow but broken.
 

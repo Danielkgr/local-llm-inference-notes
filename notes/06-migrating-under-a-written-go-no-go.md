@@ -1,12 +1,12 @@
 # Migrating the whole stack under a written go/no-go
 
-**Situation.** An LTS-to-LTS operating system upgrade on the single machine that
+**Situation.**  An LTS-to-LTS operating system upgrade on the single machine that
 serves every model, runs the image pipeline, and holds the configuration.  Two
 technical blockers had been carried for weeks: a kernel regression that hung
 image generation, and a Python version bump that would force every virtual
 environment to be rebuilt.
 
-**Approach.** Write the decision down before making it, in a document with a
+**Approach.**  Write the decision down before making it, in a document with a
 verdict, a trigger condition, a rollback, and an ordered verification list.  Then
 execute against that document rather than against judgement on the day.
 
@@ -35,7 +35,7 @@ running a release the vendor has not yet marked ready, on the machine that serve
 everything, with no vendor driver repository for it yet.  It will probably work,
 and if it does not, the only way back is the image described below.
 
-**The gate was then jumped deliberately.** The flag had not flipped when the
+**The gate was then jumped deliberately.**  The flag had not flipped when the
 upgrade ran.  That is the outcome the document was written to make possible: not
 to force patience, but to ensure that going early was a decision taken against a
 written description of the risk and a rollback that already existed, rather than
@@ -51,7 +51,7 @@ The pre-upgrade sequence runs before anything is touched:
 
 1. A full backup including the compiled builds and virtual environments, not just
    the weekly one, which omits them.
-2. **A root disk image, which is the only real rollback.** The system partition
+2. **A root disk image, which is the only real rollback.**  The system partition
    carries the configuration and the database as well as the OS, so one image
    covers everything.  It requires booting external media, which means being
    physically at the machine.

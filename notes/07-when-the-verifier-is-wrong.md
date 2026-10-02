@@ -8,7 +8,7 @@ years, and is wrong in a way that produces silence rather than errors.
 if [ -d "$dir/.git" ]; then
 ```
 
-**A git worktree's `.git` is a file, not a directory.** Sixty-one bytes, pointing
+**A git worktree's `.git` is a file, not a directory.**  Sixty-one bytes, pointing
 at the real git directory elsewhere.  Every `git` command works normally inside
 it.  This test returns false.
 
@@ -29,7 +29,7 @@ every run, which had trained the eye to ignore skip warnings entirely.
 Separately, the off-site mirror script verified one archive by checksum while its
 report read as though the whole run had been attested.
 
-**A backup that exits zero is not a backup that contains what you need.** The
+**A backup that exits zero is not a backup that contains what you need.**  The
 only way to know is to assert contents, so the fix lists every archive member and
 greps for the binary by name.
 
@@ -48,7 +48,7 @@ Same worktree test, in two functions.  The check saw the worktree as absent and
 silently fell back to the superseded main tree.
 
 The detail worth keeping: the script's own footer already said the newer build
-was adopted.  **The prose knew and the measurement did not.** A tool that carries
+was adopted.  **The prose knew and the measurement did not.**  A tool that carries
 both a hand-maintained comment and an automatic check will drift, and the
 automatic half is the half people trust.
 
@@ -70,7 +70,7 @@ script and a service hook, found neither, and concluded the mechanism was absent
 It went on to recommend building the thing that already existed.
 
 **A gitignored plugin directory is a real extension point that version control
-will not show you.** Grep it explicitly.
+will not show you.**  Grep it explicitly.
 
 The correction was made by exercising the behaviour rather than reading more
 code: load a model, trigger a render, watch memory actually fall and the render

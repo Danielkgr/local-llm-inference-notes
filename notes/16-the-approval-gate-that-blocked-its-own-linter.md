@@ -1,11 +1,11 @@
 # The approval gate that blocked its own linter
 
-**Question.** An agentic coding harness had already been hardened: catastrophic
+**Question.**  An agentic coding harness had already been hardened: catastrophic
 shell commands denied, read-only subagents stripped of their edit and shell
 tools, and a health gate asserting the shape.  Two questions remained.  Was it
 actually safe, and was it actually fast?
 
-**Verdict.** Mixed, and the interesting failures were structural rather than
+**Verdict.**  Mixed, and the interesting failures were structural rather than
 missing.  The denies worked exactly as documented.  But five of eleven agents
 shared a backend serving a single slot, two models with recorded destructive
 tool failures sat one click away in the model picker, the dominant language in

@@ -1,9 +1,9 @@
 # The same false negative, five times
 
-**Question.** A reasoning model returns an empty string.  The harness records a
+**Question.**  A reasoning model returns an empty string.  The harness records a
 failure.  How many times can one machine make that mistake?
 
-**Verdict.** At least five, across four different harnesses, over three weeks,
+**Verdict.**  At least five, across four different harnesses, over three weeks,
 and raising the token budget did not stop it.  The recurrence is the finding.
 The defect was fixed each time in the harness that had just been caught, and the
 default it was fixed to lived nowhere that the next harness could inherit it.
