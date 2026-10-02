@@ -23,7 +23,7 @@ answers, which is what makes deterministic grading possible.
 Three rules fell out of running it:
 
 **Empty content is an error, not a failure.**  Reasoning models spend their token
-budget on `reasoning_content` before emitting anything.  At a 420 token cap,
+budget on `reasoning_content` before emitting anything.  At a 420-token cap,
 three different models returned `content=''` with `finish_reason='length'`.  An
 empty string trivially satisfies "contains none of the forbidden words", so
 scoring it as a pass is wrong, and scoring it as a content failure blames the
@@ -41,14 +41,14 @@ even when the suite size changed.
 
 ## The ceiling, twice
 
-The 23 task core suite discriminated usefully at first.  On 31 July the field
+The 23-task core suite discriminated usefully at first.  On 31 July the field
 ranged from 18/23 to 22/23.  One day later, after a system-prompt fix, two models
 scored 23/23.  At that point the suite could still detect a regression, but a
 candidate could only ever tie, so it could not measure a gain.
 
-A 27 task hard tier was generated to restore headroom.  Its stated design target,
+A 27-task hard tier was generated to restore headroom.  Its stated design target,
 written into the generator, was roughly 70 to 80 per cent for the reference model
-on the merged 50 task suite.
+on the merged 50-task suite.
 
 The reference model scored **50/50**.
 
