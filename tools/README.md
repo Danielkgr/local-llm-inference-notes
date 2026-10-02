@@ -96,7 +96,8 @@ empty content and a finish reason of `length`.  That is scored as an error in
 its own column, never as a pass and never as a content failure, and the row
 records the finish reason and the reasoning length so starvation is
 distinguishable from a model that genuinely said nothing.  On this machine
-budgets of 300, 500, 2000 and 4500 each produced a false capability finding.
+budgets of 300, 500, 2000, and 4500 each produced a false capability finding,
+and so did a baseline row recorded at 16000.
 See [note 15](../notes/15-the-same-false-negative-five-times.md).
 
 Read [note 08](../notes/08-a-benchmark-with-no-judge.md) for the design position

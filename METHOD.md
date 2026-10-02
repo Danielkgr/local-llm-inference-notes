@@ -43,7 +43,7 @@ See [note 12](notes/12-four-sampling-profiles-three-rankings.md).
 **Print the token budget in the output, and treat any capped run as measuring
 the cap until shown otherwise.**  A reasoning model that runs out of budget
 returns empty content with a finish reason of `length`, which reads as a wrong
-answer.  Four different budgets produced four false capability findings here, and
+answer.  Five different budgets produced five false capability findings here, and
 the last of them was a budget already raised to be generous.  See
 [note 15](notes/15-the-same-false-negative-five-times.md).
 
