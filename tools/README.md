@@ -28,6 +28,19 @@ pip install pyyaml     # only for context-readout.py
 `gpu-mutex-guard.sh` expects `curl`, `python3`, and on AMD hardware `rocm-smi`,
 falling back to sysfs if that is absent.
 
+## Checks
+
+The tests and linters are separate from the tools.  From the repository root:
+
+```sh
+pip install -r requirements-dev.txt
+ruff check . && ruff format --check . && mypy && pytest
+```
+
+The tests run every tool against hand-built inputs and local fake servers, so they
+need no GPU, no model, and no network.  CI runs the same commands, runs the tests on
+Python 3.8 and 3.13, and regenerates `tasks-hard.json` to confirm it has not changed.
+
 ## model-eval
 
 A graded suite that answers "is model A better than model B for my work" with a
