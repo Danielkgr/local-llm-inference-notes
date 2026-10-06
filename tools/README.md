@@ -38,9 +38,11 @@ pip install -r requirements-dev.txt
 ruff check . && ruff format --check . && mypy && pytest
 ```
 
-The tests run every tool against hand-built inputs and local fake servers, so they
-need no GPU, no model, and no network.  CI runs the same commands, runs the tests on
-Python 3.8 and 3.13, and regenerates `tasks-hard.json` and `tasks-legal.json` to confirm
+The tests cover `run-eval.py`, both generators, `gguf-arch.py`, and `resume-dl.py`,
+using hand-built inputs and local fake servers, so they need no GPU, no model, and no
+network.  `context-readout.py` has no tests yet, and `gpu-mutex-guard.sh` is checked
+only by `bash -n` and shellcheck.  CI runs the same commands, runs the tests on Python
+3.8 and 3.13, and regenerates `tasks-hard.json` and `tasks-legal.json` to confirm
 neither has changed.
 
 ## model-eval
