@@ -204,4 +204,6 @@ resume-dl.py URL DEST [--expect BYTES]
 
 Append-only.  It verifies the server answered a range request with HTTP 206
 before writing another byte, and refuses to start at all without a known target
-size.  On completion it checks the file's magic bytes.
+size.  On completion it checks the file's magic bytes.  A client error such as 404
+ends the run at once, because it will not change on retry.  Network errors, server
+errors, 408, and 429 are retried with back-off.
