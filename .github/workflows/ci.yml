@@ -100,4 +100,5 @@ jobs:
       # The generators use only the standard library.  Regenerating must leave the
       # committed files byte for byte as they are.
       - run: python tools/model-eval/gen-hard-tasks.py
+      - run: python tools/model-eval/gen-legal-tasks.py
       - run: git diff --exit-code
