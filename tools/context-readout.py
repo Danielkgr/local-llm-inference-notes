@@ -26,6 +26,7 @@ at all.
 """
 
 import argparse
+import http.client
 import json
 import os
 import re
@@ -44,13 +45,16 @@ def configured_ctx(conf_path):
     """model id -> -c, plus alias -> canonical id."""
     import yaml
 
-    d = yaml.safe_load(open(conf_path))
+    with open(conf_path) as f:
+        d = yaml.safe_load(f)
     ctx, alias = {}, {}
     for mid, m in (d.get("models") or {}).items():
         # Strip comment lines first: a config's own comments often contain strings
         # like "-c 16384 -> 65536 -> 131072", and a naive search returns the
         # historical value rather than the live one.
-        cmd = "\n".join(l for l in m.get("cmd", "").splitlines() if not l.strip().startswith("#"))
+        cmd = "\n".join(
+            line for line in m.get("cmd", "").splitlines() if not line.strip().startswith("#")
+        )
         hit = re.findall(r"-c\s+(\d+)", cmd)
         ctx[mid] = int(hit[-1]) if hit else None
         for a in m.get("aliases") or []:
@@ -66,7 +70,7 @@ def chat_stats(db_path, limit):
     for (blob,) in rows:
         try:
             c = json.loads(blob)
-        except Exception:
+        except (ValueError, TypeError):  # not JSON, or a NULL chat column
             continue
         hist = (c.get("history") or {}).get("messages") or {}
         for m in hist.values():
@@ -82,22 +86,27 @@ def chat_stats(db_path, limit):
     return stats
 
 
+def fetch_json(url, timeout):
+    """Parsed JSON from url, or None when the server is down or the body is not JSON."""
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as r:
+            return json.load(r)
+    except (OSError, ValueError, http.client.HTTPException):
+        return None
+
+
 def live_slots(swap_url):
     """model id -> (n_slots, n_ctx, busy) for whatever is currently loaded."""
     out = {}
-    try:
-        run = json.load(urllib.request.urlopen(swap_url + "/running", timeout=5))
-    except Exception:
+    run = fetch_json(swap_url + "/running", timeout=5)
+    if not isinstance(run, dict):
         return out
     for r in run.get("running", []):
         mid = r.get("model")
         if not mid or r.get("state") != "ready":
             continue
         q = urllib.parse.quote(mid, safe="")
-        try:
-            s = json.load(urllib.request.urlopen(f"{swap_url}/upstream/{q}/slots", timeout=8))
-        except Exception:
-            continue
+        s = fetch_json(f"{swap_url}/upstream/{q}/slots", timeout=8)
         if isinstance(s, list) and s:
             # NOTE: some llama.cpp builds expose only id / is_processing / n_ctx on
             # /slots, with no n_past, so a live "context fill" figure is not
