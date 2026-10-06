@@ -59,3 +59,25 @@ def test_expect_skips_the_head_request(file_server, tmp_path):
     done = cli(file_server.url, str(dest), "--expect", str(len(file_server.content)))
     assert done.returncode == 0, done.stderr
     assert dest.read_bytes() == file_server.content
+
+
+def test_missing_arguments_print_usage_not_a_traceback():
+    done = cli("http://127.0.0.1:9/x")
+    assert done.returncode == 2
+    assert "usage:" in done.stderr
+    assert "Traceback" not in done.stderr
+
+
+def test_expect_without_a_number_is_a_usage_error(tmp_path):
+    for args in (["--expect"], ["--expect", "lots"]):
+        done = cli("http://127.0.0.1:9/x", str(tmp_path / "f"), *args)
+        assert done.returncode == 2
+        assert "--expect" in done.stderr
+        assert "Traceback" not in done.stderr
+
+
+def test_expect_may_come_first(file_server, tmp_path):
+    dest = tmp_path / "model.gguf"
+    done = cli("--expect", str(len(file_server.content)), file_server.url, str(dest))
+    assert done.returncode == 0, done.stderr
+    assert dest.read_bytes() == file_server.content
