@@ -10,7 +10,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-from conftest import TOOLS
+import pytest
+from conftest import TOOLS, load_script
 
 SCRIPT = TOOLS / "resume-dl.py"
 
@@ -81,3 +82,36 @@ def test_expect_may_come_first(file_server, tmp_path):
     done = cli("--expect", str(len(file_server.content)), file_server.url, str(dest))
     assert done.returncode == 0, done.stderr
     assert dest.read_bytes() == file_server.content
+
+
+def test_404_fails_fast_instead_of_retrying(file_server, tmp_path):
+    file_server.get_statuses = [404] * 5
+    dest = tmp_path / "model.gguf"
+    done = cli(file_server.url, str(dest), "--expect", "100", timeout=20)
+    assert done.returncode == 1
+    assert "FATAL: HTTP Error 404" in done.stderr
+    assert file_server.gets == 1
+
+
+def test_head_error_is_a_clear_refusal(file_server, tmp_path):
+    file_server.head_status = 404
+    done = cli(file_server.url, str(tmp_path / "model.gguf"), timeout=20)
+    assert done.returncode == 1
+    assert "could not determine size (HTTP Error 404: Not Found)" in done.stderr
+    assert "Traceback" not in done.stderr
+    assert file_server.gets == 0
+
+
+@pytest.mark.parametrize("status", [503, 429, 408])
+def test_server_errors_and_retry_later_codes_are_retried(
+    file_server, tmp_path, monkeypatch, status
+):
+    resume_dl = load_script(SCRIPT, "resume_dl")
+    sleeps: list[float] = []
+    monkeypatch.setattr(resume_dl.time, "sleep", sleeps.append)
+    file_server.get_statuses = [status]
+    dest = tmp_path / "model.gguf"
+    resume_dl.main([file_server.url, str(dest), "--expect", str(len(file_server.content))])
+    assert dest.read_bytes() == file_server.content
+    assert sleeps == [5]
+    assert file_server.gets == 2
