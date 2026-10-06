@@ -220,6 +220,33 @@ def describe_bad_body(d):
     return "no choices in response: " + json.dumps(d)[:120]
 
 
+def load_baseline(path):
+    """The results of an earlier run, or a clear exit saying why the file cannot be used."""
+    try:
+        with open(path) as f:
+            doc = json.load(f)
+    except OSError as e:
+        sys.exit(f"--baseline: cannot read {path}: {e.strerror or e}")
+    except ValueError as e:
+        sys.exit(f"--baseline: {path} is not valid JSON ({e})")
+    results = doc.get("results") if isinstance(doc, dict) else None
+    if not isinstance(results, dict) or not results:
+        sys.exit(f"--baseline: {path} has no results, so it is not a run-eval.py results file")
+    for model, r in results.items():
+        rows = r.get("rows") if isinstance(r, dict) else None
+        if (
+            not isinstance(rows, list)
+            or "score" not in r
+            or "total" not in r
+            or not all(isinstance(row, dict) and "id" in row and "pass" in row for row in rows)
+        ):
+            sys.exit(
+                f"--baseline: {path} results for {model!r} need score, total, "
+                "and rows with an id and a pass"
+            )
+    return results
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument(
@@ -305,6 +332,18 @@ def main():
         "selection can be checked without taking the GPU",
     )
     a = ap.parse_args()
+    # Checked before anything runs: a typo here used to surface as a raw JSONDecodeError
+    # after the model list had already been fetched.
+    chat_kwargs = None
+    if a.chat_kwargs:
+        try:
+            chat_kwargs = json.loads(a.chat_kwargs)
+        except ValueError as e:
+            ap.error(f"--chat-kwargs is not valid JSON: {e}")
+        if not isinstance(chat_kwargs, dict):
+            ap.error(
+                "--chat-kwargs must be a JSON object, for example '{\"enable_thinking\": false}'"
+            )
 
     # tasks.json predates tiering, so anything without an explicit tier is core.
     tasks = json.load(open(os.path.join(HERE, "tasks.json")))["tasks"]
@@ -324,7 +363,7 @@ def main():
     base_rows = {}
     gating = a.gate != "all" or a.gate_stop_after or a.order != "file"
     if a.baseline:
-        _b = json.load(open(a.baseline))["results"]
+        _b = load_baseline(a.baseline)
         if a.gate_model:
             if a.gate_model not in _b:
                 sys.exit(
@@ -440,8 +479,8 @@ def main():
         v = getattr(a, flag)
         if v is not None:
             sampling[key] = v
-    if a.chat_kwargs:
-        sampling["chat_template_kwargs"] = json.loads(a.chat_kwargs)
+    if chat_kwargs is not None:
+        sampling["chat_template_kwargs"] = chat_kwargs
 
     print(f"model-eval -- {len(tasks)} tasks x {len(models)} models, best-of-{a.best_of}")
     print(f"endpoint: {a.endpoint}")
@@ -602,7 +641,7 @@ def main():
     print(f"\nsaved -> {out}")
 
     if a.baseline:
-        base = json.load(open(a.baseline))["results"]
+        base = _b
         print("\n=== vs baseline ===")
         for m, r in results.items():
             if m not in base:

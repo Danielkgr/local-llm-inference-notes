@@ -190,6 +190,38 @@ def test_gate_refuses_an_ambiguous_baseline(run_eval, monkeypatch, tmp_path):
     assert "--gate-model" in str(exc.value.code)
 
 
+@pytest.mark.parametrize(
+    ("content", "message"),
+    [
+        (None, "cannot read"),
+        ("{not json", "is not valid JSON"),
+        ('{"when": "yesterday"}', "has no results, so it is not a run-eval.py results file"),
+        (
+            '{"results": {"m": {"score": 1, "total": 1, "rows": [{"id": "x"}]}}}',
+            "need score, total",
+        ),
+    ],
+)
+def test_unusable_baseline_is_a_clear_error(run_eval, monkeypatch, tmp_path, content, message):
+    path = tmp_path / "baseline.json"
+    if content is not None:
+        path.write_text(content)
+    with pytest.raises(SystemExit) as exc:
+        run(run_eval, monkeypatch, "--baseline", str(path), "--gate", "passed", "--dry-run")
+    assert message in str(exc.value.code)
+
+
+@pytest.mark.parametrize(
+    ("value", "message"),
+    [("{enable_thinking: false}", "not valid JSON"), ("[1, 2]", "must be a JSON object")],
+)
+def test_unusable_chat_kwargs_is_a_usage_error(run_eval, monkeypatch, capsys, value, message):
+    with pytest.raises(SystemExit) as exc:
+        run(run_eval, monkeypatch, "--chat-kwargs", value, "--dry-run")
+    assert exc.value.code == 2
+    assert message in capsys.readouterr().err
+
+
 # --------------------------------------------------------------- gate in a real run
 def test_gate_retries_then_aborts_on_confirmed_new_failures(
     run_eval, monkeypatch, capsys, model_server, tmp_path
