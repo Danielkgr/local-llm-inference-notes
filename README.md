@@ -89,7 +89,7 @@ A rule that a program can enforce should not depend on attention.  Five proved w
 
 | Tool | What it enforces | Notes |
 |---|---|:--:|
-| [**model-eval/**](tools/model-eval/) | Scores any OpenAI-compatible server with deterministic graders and no judge, across two difficulty tiers.  Diffs against a baseline by percentage, and gates adoption on the failure set by running only the tasks capable of deciding the question. | [08](notes/08-a-benchmark-with-no-judge.md), [09](notes/09-when-the-harness-scores-itself.md), [13](notes/13-gating-on-the-failure-set.md) |
+| [**model-eval/**](tools/model-eval/) | Scores any OpenAI-compatible server with deterministic graders and no judge, across two difficulty tiers.  Diffs against a baseline by percentage, and gates adoption on the failure set by running only the tasks capable of deciding the question.  A separate legal tier of twelve synthetic contract and policy tasks runs only with `--tier legal`, and has not yet been run. | [08](notes/08-a-benchmark-with-no-judge.md), [09](notes/09-when-the-harness-scores-itself.md), [13](notes/13-gating-on-the-failure-set.md) |
 | [**gguf-arch.py**](tools/gguf-arch.py) | Reads a model's architecture straight from the file header.  The obvious tool prints key names without their values, which turns an architecture gate into one that passes everything. | [07](notes/07-when-the-verifier-is-wrong.md) |
 | [**gpu-mutex-guard.sh**](tools/gpu-mutex-guard.sh) | Hands one GPU between an inference server and an image pipeline, waiting for the asynchronous VRAM release instead of racing it. | |
 | [**context-readout.py**](tools/context-readout.py) | Measures how close real conversations come to each model's configured limit, before VRAM buys headroom nobody reaches. | |
