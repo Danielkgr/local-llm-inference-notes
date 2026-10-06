@@ -50,12 +50,20 @@ Design decisions that matter:
     their selection into the results file with a complete_suite flag, so a
     12-task gate can never be read back as "12/50".
 """
-import argparse, json, os, re, sys, time, urllib.request
+
+import argparse
+import json
+import os
+import re
+import sys
+import time
+import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_ENDPOINT = os.environ.get(
-    "MODEL_EVAL_ENDPOINT", "http://127.0.0.1:10000/v1/chat/completions")
+    "MODEL_EVAL_ENDPOINT", "http://127.0.0.1:10000/v1/chat/completions"
+)
 
 
 def discover_models(endpoint):
@@ -69,8 +77,9 @@ def discover_models(endpoint):
         with urllib.request.urlopen(base, timeout=10) as r:
             return [m["id"] for m in json.load(r).get("data", [])]
     except Exception as e:
-        sys.exit(f"could not list models from {base}: {e}\n"
-                 f"pass --models explicitly, or check --endpoint")
+        sys.exit(
+            f"could not list models from {base}: {e}\npass --models explicitly, or check --endpoint"
+        )
 
 
 # ----------------------------------------------------------------- graders
@@ -93,13 +102,13 @@ def g_regex(out, t):
 
 
 def g_starts_with_any(out, t):
-    head = re.sub(r'^[^a-z]*', '', out.strip().lower())[:40]
+    head = re.sub(r"^[^a-z]*", "", out.strip().lower())[:40]
     ok = any(head.startswith(e.lower()) for e in t["expect"])
     return ok, "ok" if ok else f"starts with {head[:20]!r}"
 
 
 def g_numeric(out, t):
-    nums = [float(x) for x in re.findall(r'-?\d+(?:\.\d+)?', out.replace(',', ''))]
+    nums = [float(x) for x in re.findall(r"-?\d+(?:\.\d+)?", out.replace(",", ""))]
     if not nums:
         return False, "no number in output"
     tol = t.get("tolerance", 0.01)
@@ -108,7 +117,7 @@ def g_numeric(out, t):
 
 
 def g_exact_word(out, t):
-    w = re.sub(r'[^a-z]', '', out.strip().lower())
+    w = re.sub(r"[^a-z]", "", out.strip().lower())
     ok = w in [e.lower() for e in t["expect"]]
     return ok, "ok" if ok else f"got {out.strip()[:30]!r}"
 
@@ -121,8 +130,8 @@ def g_word_count(out, t):
 
 
 def g_json_keys(out, t):
-    s = re.sub(r'^```(?:json)?|```$', '', out.strip(), flags=re.M).strip()
-    m = re.search(r'\{.*\}', s, re.S)
+    s = re.sub(r"^```(?:json)?|```$", "", out.strip(), flags=re.M).strip()
+    m = re.search(r"\{.*\}", s, re.S)
     if not m:
         return False, "no JSON object found"
     try:
@@ -144,16 +153,22 @@ def g_contains_any_and_short(out, t):
 
 
 GRADERS = {
-    "contains_all": g_contains_all, "regex": g_regex, "starts_with_any": g_starts_with_any,
-    "numeric": g_numeric, "exact_word": g_exact_word, "word_count": g_word_count,
-    "json_keys": g_json_keys, "contains_any_and_short": g_contains_any_and_short,
+    "contains_all": g_contains_all,
+    "regex": g_regex,
+    "starts_with_any": g_starts_with_any,
+    "numeric": g_numeric,
+    "exact_word": g_exact_word,
+    "word_count": g_word_count,
+    "json_keys": g_json_keys,
+    "contains_any_and_short": g_contains_any_and_short,
 }
 
 
 # ----------------------------------------------------------------- runner
 def ask(endpoint, model, prompt, system, max_tokens, timeout=900, sampling=None):
-    msgs = ([{"role": "system", "content": system}] if system else []) + \
-           [{"role": "user", "content": prompt}]
+    msgs = ([{"role": "system", "content": system}] if system else []) + [
+        {"role": "user", "content": prompt}
+    ]
     # Sampling was hardcoded to temperature=0 in an earlier version, which made the
     # harness STRUCTURALLY UNABLE to measure any model that is loop-prone under greedy
     # decoding.  One candidate scored 44/50 purely because temperature 0 made it emit
@@ -166,8 +181,7 @@ def ask(endpoint, model, prompt, system, max_tokens, timeout=900, sampling=None)
     if sampling:
         body.update(sampling)
     body = json.dumps(body).encode()
-    req = urllib.request.Request(endpoint, data=body,
-                                 headers={"Content-Type": "application/json"})
+    req = urllib.request.Request(endpoint, data=body, headers={"Content-Type": "application/json"})
     t0 = time.time()
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
@@ -176,17 +190,24 @@ def ask(endpoint, model, prompt, system, max_tokens, timeout=900, sampling=None)
         return {"error": str(e), "content": "", "secs": time.time() - t0}
     ch = d["choices"][0]
     tm = d.get("timings") or {}
-    return {"content": (ch["message"].get("content") or "").strip(),
-            "reasoning": (ch["message"].get("reasoning_content") or "").strip(),
-            "finish": ch.get("finish_reason"), "secs": time.time() - t0,
-            "tok_s": tm.get("predicted_per_second")}
+    return {
+        "content": (ch["message"].get("content") or "").strip(),
+        "reasoning": (ch["message"].get("reasoning_content") or "").strip(),
+        "finish": ch.get("finish_reason"),
+        "secs": time.time() - t0,
+        "tok_s": tm.get("predicted_per_second"),
+    }
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--endpoint", default=DEFAULT_ENDPOINT,
-                    help=f"chat-completions URL (default {DEFAULT_ENDPOINT})")
-    ap.add_argument("--models"); ap.add_argument("--category")
+    ap.add_argument(
+        "--endpoint",
+        default=DEFAULT_ENDPOINT,
+        help=f"chat-completions URL (default {DEFAULT_ENDPOINT})",
+    )
+    ap.add_argument("--models")
+    ap.add_argument("--category")
     ap.add_argument("--tier", choices=["core", "hard", "all"], default="all")
     ap.add_argument("--best-of", type=int, default=1)
     # Sampling overrides.  Needed for a FAIR cross-model comparison: models come with
@@ -197,10 +218,14 @@ def main():
     ap.add_argument("--top-k", type=int)
     ap.add_argument("--min-p", type=float)
     ap.add_argument("--presence-penalty", type=float)
-    ap.add_argument("--max-tokens", type=int, default=16000,
-                    help="reasoning burns thousands of characters before the answer; on "
-                         "this machine 300, 500, 2000 and 4500 each produced EMPTY content "
-                         "that was read as a capability failure")
+    ap.add_argument(
+        "--max-tokens",
+        type=int,
+        default=16000,
+        help="reasoning burns thousands of characters before the answer; on "
+        "this machine 300, 500, 2000 and 4500 each produced EMPTY content "
+        "that was read as a capability failure",
+    )
     # chat_template_kwargs passthrough (llama.cpp accepts it in the request body).  Needed
     # for models whose template defaults to thinking on: with it on, a small token budget
     # yields reasoning and empty content on every task, so the suite measures the budget.
@@ -210,31 +235,54 @@ def main():
     # concurrent decoding is not guaranteed bit-identical to sequential even at temperature
     # 0 -- and any baseline recorded sequentially was recorded at --jobs 1.  Raise it only
     # for exploratory runs, or after proving identity on your own hardware.
-    ap.add_argument("--jobs", type=int, default=1,
-                    help="concurrent requests (1 = sequential, matches sequential baselines)")
-    ap.add_argument("--baseline"); ap.add_argument("--no-system", action="store_true")
-    ap.add_argument("--out", default=None,
-                    help="results JSON (default ./model-eval-<timestamp>.json)")
+    ap.add_argument(
+        "--jobs",
+        type=int,
+        default=1,
+        help="concurrent requests (1 = sequential, matches sequential baselines)",
+    )
+    ap.add_argument("--baseline")
+    ap.add_argument("--no-system", action="store_true")
+    ap.add_argument(
+        "--out", default=None, help="results JSON (default ./model-eval-<timestamp>.json)"
+    )
     # ---- failure-set gate ------------------------------------------------------------
-    ap.add_argument("--only", metavar="IDS",
-                    help="run only these task ids (comma list)")
-    ap.add_argument("--gate", choices=["passed", "failed", "all"], default="all",
-                    help="restrict to tasks the --baseline model PASSED (the only ones that "
-                         "can disqualify a candidate) or FAILED (upside only). "
-                         "Requires --baseline.")
-    ap.add_argument("--gate-model", metavar="NAME",
-                    help="which model key inside --baseline to gate against "
-                         "(default: the sole key; error if ambiguous)")
-    ap.add_argument("--gate-stop-after", type=int, default=0, metavar="N",
-                    help="abort after N tasks that the baseline passed have FAILED "
-                         "(0 = off).  Each is retried once before it counts.")
-    ap.add_argument("--order", choices=["file", "baseline-slowest", "baseline-fastest"],
-                    default="file",
-                    help="task order.  baseline-slowest puts the baseline's most expensive "
-                         "tasks first, so a doomed candidate reveals itself in minutes.")
-    ap.add_argument("--dry-run", action="store_true",
-                    help="print the selected task ids in run order and exit, so the "
-                         "selection can be checked without taking the GPU")
+    ap.add_argument("--only", metavar="IDS", help="run only these task ids (comma list)")
+    ap.add_argument(
+        "--gate",
+        choices=["passed", "failed", "all"],
+        default="all",
+        help="restrict to tasks the --baseline model PASSED (the only ones that "
+        "can disqualify a candidate) or FAILED (upside only). "
+        "Requires --baseline.",
+    )
+    ap.add_argument(
+        "--gate-model",
+        metavar="NAME",
+        help="which model key inside --baseline to gate against "
+        "(default: the sole key; error if ambiguous)",
+    )
+    ap.add_argument(
+        "--gate-stop-after",
+        type=int,
+        default=0,
+        metavar="N",
+        help="abort after N tasks that the baseline passed have FAILED "
+        "(0 = off).  Each is retried once before it counts.",
+    )
+    ap.add_argument(
+        "--order",
+        choices=["file", "baseline-slowest", "baseline-fastest"],
+        default="file",
+        help="task order.  baseline-slowest puts the baseline's most expensive "
+        "tasks first, so a doomed candidate reveals itself in minutes.",
+    )
+    ap.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="print the selected task ids in run order and exit, so the "
+        "selection can be checked without taking the GPU",
+    )
     a = ap.parse_args()
 
     # tasks.json predates tiering, so anything without an explicit tier is core.
@@ -253,27 +301,30 @@ def main():
 
     # ---- failure-set gate: selection and ordering -------------------------------------
     base_rows = {}
-    gating = (a.gate != "all" or a.gate_stop_after or a.order != "file")
+    gating = a.gate != "all" or a.gate_stop_after or a.order != "file"
     if a.baseline:
         _b = json.load(open(a.baseline))["results"]
         if a.gate_model:
             if a.gate_model not in _b:
-                sys.exit(f"--gate-model {a.gate_model!r} not in {a.baseline}; it holds: "
-                         + ", ".join(repr(k) for k in _b))
+                sys.exit(
+                    f"--gate-model {a.gate_model!r} not in {a.baseline}; it holds: "
+                    + ", ".join(repr(k) for k in _b)
+                )
             _bm = a.gate_model
         elif len(_b) == 1:
             _bm = next(iter(_b))
         elif gating:
             # Ambiguous, and the gate would silently pick one.  Multi-model baselines are
             # fine for the percentage comparison at the end; they are not fine here.
-            sys.exit(f"{a.baseline} holds {len(_b)} models -- name one with --gate-model: "
-                     + ", ".join(repr(k) for k in _b))
+            sys.exit(
+                f"{a.baseline} holds {len(_b)} models -- name one with --gate-model: "
+                + ", ".join(repr(k) for k in _b)
+            )
         else:
             _bm = None
         if _bm is not None:
             base_rows = {r["id"]: r for r in _b[_bm]["rows"]}
-            print(f"gate baseline: {_bm} -- "
-                  f"{_b[_bm]['score']}/{_b[_bm]['total']} ({a.baseline})")
+            print(f"gate baseline: {_bm} -- {_b[_bm]['score']}/{_b[_bm]['total']} ({a.baseline})")
     elif gating:
         sys.exit("--gate / --gate-stop-after / --order require --baseline FILE.json")
 
@@ -282,8 +333,10 @@ def main():
     # after the GPU time it exists to save.  Refuse the combination rather than accept it
     # and silently do nothing.
     if a.gate_stop_after and a.jobs > 1:
-        sys.exit("--gate-stop-after needs --jobs 1: with concurrency every task is already "
-                 "computed before the first result is read, so the abort saves nothing.")
+        sys.exit(
+            "--gate-stop-after needs --jobs 1: with concurrency every task is already "
+            "computed before the first result is read, so the abort saves nothing."
+        )
 
     if a.only:
         want = {i.strip() for i in a.only.split(",") if i.strip()}
@@ -293,31 +346,37 @@ def main():
         tasks = [t for t in tasks if t["id"] in want]
 
     if a.gate != "all":
-        want_pass = (a.gate == "passed")
+        want_pass = a.gate == "passed"
         # A task absent from the baseline is neither passed nor failed there.  Dropping it
         # silently would hide genuinely new coverage, so say so instead.
         absent = [t["id"] for t in tasks if t["id"] not in base_rows]
         if absent:
-            print(f"warning: {len(absent)} task(s) not in the baseline, excluded from "
-                  f"--gate {a.gate}: {', '.join(absent)}")
+            print(
+                f"warning: {len(absent)} task(s) not in the baseline, excluded from "
+                f"--gate {a.gate}: {', '.join(absent)}"
+            )
         tasks = [t for t in tasks if base_rows.get(t["id"], {}).get("pass") == want_pass]
         if not tasks:
             sys.exit(f"no tasks matched --gate {a.gate}")
 
     if a.order != "file":
-        rev = (a.order == "baseline-slowest")
-        tasks.sort(key=lambda t: (base_rows.get(t["id"], {}).get("secs") or 0), reverse=rev)
+        rev = a.order == "baseline-slowest"
+        tasks.sort(key=lambda t: base_rows.get(t["id"], {}).get("secs") or 0, reverse=rev)
 
     if a.dry_run:
         print(f"\ndry-run -- {len(tasks)} task(s), in run order:")
         for t in tasks:
             br = base_rows.get(t["id"], {})
-            print(f"  {t['id']:<20} {t['category']:<13} baseline "
-                  f"{'pass' if br.get('pass') else 'FAIL' if br else '--':<4} "
-                  f"{(str(br.get('secs')) + 's') if br.get('secs') is not None else ''}")
+            print(
+                f"  {t['id']:<20} {t['category']:<13} baseline "
+                f"{'pass' if br.get('pass') else 'FAIL' if br else '--':<4} "
+                f"{(str(br.get('secs')) + 's') if br.get('secs') is not None else ''}"
+            )
         est = sum((base_rows.get(t["id"], {}).get("secs") or 0) for t in tasks)
-        print(f"\nbaseline wall time for this selection: {est/60:.1f} min "
-              f"(the candidate will differ with its own decode rate)")
+        print(
+            f"\nbaseline wall time for this selection: {est / 60:.1f} min "
+            f"(the candidate will differ with its own decode rate)"
+        )
         return
 
     served = discover_models(a.endpoint)
@@ -337,16 +396,26 @@ def main():
     if not models:
         sys.exit("no models to test")
 
-    system = None if a.no_system else (
-        "Default to flowing prose. Use bullet points, numbered lists, or headers only when "
-        "the content is genuinely enumerable. Follow output-format instructions exactly.")
+    system = (
+        None
+        if a.no_system
+        else (
+            "Default to flowing prose. Use bullet points, numbered lists, or headers only when "
+            "the content is genuinely enumerable. Follow output-format instructions exactly."
+        )
+    )
 
     tier_counts = {}
     for t in tasks:
         tier_counts[t.get("tier", "core")] = tier_counts.get(t.get("tier", "core"), 0) + 1
     sampling = {}
-    for flag, key in (("temperature", "temperature"), ("top_p", "top_p"), ("top_k", "top_k"),
-                      ("min_p", "min_p"), ("presence_penalty", "presence_penalty")):
+    for flag, key in (
+        ("temperature", "temperature"),
+        ("top_p", "top_p"),
+        ("top_k", "top_k"),
+        ("min_p", "min_p"),
+        ("presence_penalty", "presence_penalty"),
+    ):
         v = getattr(a, flag)
         if v is not None:
             sampling[key] = v
@@ -373,17 +442,19 @@ def main():
                 r = ask(a.endpoint, m, t["prompt"], system, a.max_tokens, sampling=sampling)
                 best = best or r
                 if r.get("error"):
-                    why = "API: " + r["error"][:60]; continue
+                    why = "API: " + r["error"][:60]
+                    continue
                 if not r["content"]:
                     # empty content is NEVER a pass and NEVER a content failure.  The
                     # finish reason and reasoning length are recorded because they are
                     # what distinguishes a starved budget from a model that said nothing.
-                    why = f"EMPTY (finish={r['finish']}, reasoning={len(r.get('reasoning',''))}c)"
+                    why = f"EMPTY (finish={r['finish']}, reasoning={len(r.get('reasoning', ''))}c)"
                     continue
                 ok, w = GRADERS[t["grader"]](r["content"], t)
                 best = r
                 if ok:
-                    passed, why = True, w; break
+                    passed, why = True, w
+                    break
                 why = w
             return passed, why, best
 
@@ -413,26 +484,43 @@ def main():
                 mark = "PASS" if passed else "FAIL"
             per_cat.setdefault(t["category"], []).append(passed)
             per_tier.setdefault(t.get("tier", "core"), []).append(passed)
-            rows.append({"id": t["id"], "cat": t["category"], "tier": t.get("tier", "core"),
-                         "pass": passed,
-                         "why": why, "secs": round(best["secs"], 1) if best else None,
-                         "output": (best or {}).get("content", "")[:200]})
+            rows.append(
+                {
+                    "id": t["id"],
+                    "cat": t["category"],
+                    "tier": t.get("tier", "core"),
+                    "pass": passed,
+                    "why": why,
+                    "secs": round(best["secs"], 1) if best else None,
+                    "output": (best or {}).get("content", "")[:200],
+                }
+            )
             print(f"  {mark}  {t['id']:<18} {t['category']:<13} {why[:52]}")
             if a.gate_stop_after and len(new_fails) >= a.gate_stop_after:
-                aborted = (f"{len(new_fails)} confirmed new failure(s) vs baseline "
-                           f"({', '.join(new_fails)}) after {_i + 1}/{len(tasks)} tasks")
+                aborted = (
+                    f"{len(new_fails)} confirmed new failure(s) vs baseline "
+                    f"({', '.join(new_fails)}) after {_i + 1}/{len(tasks)} tasks"
+                )
                 print(f"\n  ABORT -- {aborted}")
-                print(f"     Dominance is impossible; the remaining {len(tasks) - _i - 1} "
-                      f"task(s) cannot change that.  Stopping to free the GPU.")
+                print(
+                    f"     Dominance is impossible; the remaining {len(tasks) - _i - 1} "
+                    f"task(s) cannot change that.  Stopping to free the GPU."
+                )
                 break
         score = sum(r["pass"] for r in rows)
         cats = {c: f"{sum(v)}/{len(v)}" for c, v in per_cat.items()}
         tiers = {k: f"{sum(v)}/{len(v)}" for k, v in per_tier.items()}
-        print(f"  ----> {score}/{len(rows)}  ({100*score/len(rows):.0f}%)   errors={errs}")
+        print(f"  ----> {score}/{len(rows)}  ({100 * score / len(rows):.0f}%)   errors={errs}")
         print(f"        by tier: {tiers}")
         print(f"        by cat:  {cats}\n")
-        results[m] = {"score": score, "total": len(rows), "errors": errs,
-                      "by_category": cats, "by_tier": tiers, "rows": rows}
+        results[m] = {
+            "score": score,
+            "total": len(rows),
+            "errors": errs,
+            "by_category": cats,
+            "by_tier": tiers,
+            "rows": rows,
+        }
         if base_rows:
             # The verdict this suite is actually for.  Stated even on a complete run,
             # because "49/50" and "fails nothing the incumbent passes" are different
@@ -440,12 +528,16 @@ def main():
             # against the baseline model in the same sitting before quoting it.
             results[m]["new_failures"] = new_fails
             results[m]["recovered"] = sorted(
-                r["id"] for r in rows
-                if r["pass"] and base_rows.get(r["id"], {}).get("pass") is False)
+                r["id"]
+                for r in rows
+                if r["pass"] and base_rows.get(r["id"], {}).get("pass") is False
+            )
         if aborted:
             results[m]["aborted"] = aborted
-            print(f"  PARTIAL RUN -- {score}/{len(rows)} of a {len(tasks)}-task selection; "
-                  f"this is NOT a suite score.")
+            print(
+                f"  PARTIAL RUN -- {score}/{len(rows)} of a {len(tasks)}-task selection; "
+                f"this is NOT a suite score."
+            )
 
     print("=" * 74)
     print(f"{'model':<48}{'score':>10}{'errors':>9}")
@@ -457,17 +549,35 @@ def main():
     # Record HOW the run was made.  Two baselines on this machine do not say what sampling
     # or token budget produced them, which makes "match the baseline's settings" an
     # instruction nobody can check -- the numbers have to be reasoned about instead of read.
-    json.dump({"when": time.strftime("%Y-%m-%d %H:%M:%S"), "system": system,
-               "endpoint": a.endpoint,
-               "settings": {"sampling": sampling or {"temperature": 0},
-                            "max_tokens": a.max_tokens, "jobs": a.jobs,
-                            "best_of": a.best_of, "chat_kwargs": a.chat_kwargs},
-               "selection": {"tier": a.tier, "category": a.category, "only": a.only,
-                             "gate": a.gate, "order": a.order, "baseline": a.baseline,
-                             "n_tasks": len(tasks),
-                             "complete_suite": (a.gate == "all" and not a.only
-                                                and a.tier == "all" and not a.category)},
-               "results": results}, open(out, "w"), indent=1)
+    json.dump(
+        {
+            "when": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "system": system,
+            "endpoint": a.endpoint,
+            "settings": {
+                "sampling": sampling or {"temperature": 0},
+                "max_tokens": a.max_tokens,
+                "jobs": a.jobs,
+                "best_of": a.best_of,
+                "chat_kwargs": a.chat_kwargs,
+            },
+            "selection": {
+                "tier": a.tier,
+                "category": a.category,
+                "only": a.only,
+                "gate": a.gate,
+                "order": a.order,
+                "baseline": a.baseline,
+                "n_tasks": len(tasks),
+                "complete_suite": (
+                    a.gate == "all" and not a.only and a.tier == "all" and not a.category
+                ),
+            },
+            "results": results,
+        },
+        open(out, "w"),
+        indent=1,
+    )
     print(f"\nsaved -> {out}")
 
     if a.baseline:
@@ -490,8 +600,10 @@ def main():
                 note = "  <-- REGRESSION"
             else:
                 note = ""
-            print(f"  {m:<44} {b['score']}/{b['total']} ({bp:.0f}%) -> "
-                  f"{r['score']}/{r['total']} ({rp:.0f}%)  {d:+.0f} pp{note}")
+            print(
+                f"  {m:<44} {b['score']}/{b['total']} ({bp:.0f}%) -> "
+                f"{r['score']}/{r['total']} ({rp:.0f}%)  {d:+.0f} pp{note}"
+            )
             # Per-task flips are what actually matters for a regression gate, and they stay
             # meaningful even when the suite size changed: only shared task ids are compared.
             was = {row["id"]: row["pass"] for row in b["rows"]}
