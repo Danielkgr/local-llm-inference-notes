@@ -52,6 +52,7 @@ Design decisions that matter:
 """
 
 import argparse
+import http.client
 import json
 import os
 import re
@@ -186,17 +187,37 @@ def ask(endpoint, model, prompt, system, max_tokens, timeout=900, sampling=None)
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
             d = json.load(r)
-    except Exception as e:
+    except (OSError, ValueError, http.client.HTTPException) as e:
+        # OSError covers URLError, HTTPError, refused connections, and timeouts;
+        # ValueError covers a body that is not JSON.
         return {"error": str(e), "content": "", "secs": time.time() - t0}
-    ch = d["choices"][0]
-    tm = d.get("timings") or {}
+    # A server can answer 200 with an error object and no choices, for example when a
+    # model fails to load.  That is an API error for this one task, counted in the error
+    # column like any other, not a reason to abandon the whole run.
+    try:
+        ch = d["choices"][0]
+        content = (ch["message"].get("content") or "").strip()
+        reasoning = (ch["message"].get("reasoning_content") or "").strip()
+        tok_s = (d.get("timings") or {}).get("predicted_per_second")
+    except (KeyError, IndexError, TypeError, AttributeError):
+        return {"error": describe_bad_body(d), "content": "", "secs": time.time() - t0}
     return {
-        "content": (ch["message"].get("content") or "").strip(),
-        "reasoning": (ch["message"].get("reasoning_content") or "").strip(),
+        "content": content,
+        "reasoning": reasoning,
         "finish": ch.get("finish_reason"),
         "secs": time.time() - t0,
-        "tok_s": tm.get("predicted_per_second"),
+        "tok_s": tok_s,
     }
+
+
+def describe_bad_body(d):
+    """A short reason for a response that parsed as JSON but held no usable choice."""
+    err = d.get("error") if isinstance(d, dict) else None
+    if isinstance(err, dict):
+        err = err.get("message") or json.dumps(err)
+    if err:
+        return f"error body: {err}"
+    return "no choices in response: " + json.dumps(d)[:120]
 
 
 def main():
