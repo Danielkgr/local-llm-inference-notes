@@ -18,7 +18,7 @@ This section applies to interactive primary work agents such as `build`, `plan`,
 
 - When an image attachment notice includes `image_id`, call `vision_inspect` with that exact ID and the specific visual question before describing the screenshot or implementing a fix based on it. Multiple IDs can be inspected together.
 - If an old screenshot no longer has a visible ID after compaction, call `vision_inspect` with just `question` to recover the latest stored image message in this session.
-- For images on disk, call `vision_inspect` with `file_paths`. A pasted attachment filename is not necessarily a local path. The tool forwards the actual pixels to the local Ornith `vision` agent and returns its observations.
+- For images on disk, call `vision_inspect` with `file_paths`. A pasted attachment filename is not necessarily a local path. The tool forwards the actual pixels to the local Model-H `vision` agent and returns its observations.
 - Ordinary `task` delegation does not forward pasted image attachments. Use `vision_inspect` for attachment handoff. Use `task` with `vision` only for explicit real file paths.
 - If vision fails, report the failure and retry when appropriate. Do not infer image contents from filenames, source code, or old handovers saying screenshots are unsupported. Do not ask the user to transcribe a screenshot before trying the vision tool.
 - The `vision` agent is a leaf: never apply repository-discovery delegation recursively.

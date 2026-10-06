@@ -5,9 +5,11 @@ The two files here are the sanitised working configuration described in
 are published as a worked example, not as something to copy unchanged.
 
 - `opencode.sanitised.json` is the agent, provider, permission, language server,
-  and formatter configuration.  Host names, tailnet addresses, and absolute home
-  paths are replaced with placeholders.  No credentials were ever stored in this
-  file.
+  and formatter configuration.  Host names, tailnet addresses, absolute home
+  paths, and model identifiers are replaced with placeholders.  A model
+  placeholder such as `Model-E-27B (Q5_K_M)` keeps the size, the quantisation,
+  and any role, and drops the name, as the notes do.  No credentials were ever
+  stored in this file.
 - `AGENTS.md` is the global instruction file injected into every session.  It
   carries the delegation policy, the image inspection policy, and the house
   rules.
