@@ -368,3 +368,45 @@ def test_endpoint_with_no_model_list_is_a_clear_error(run_eval, monkeypatch):
 def test_every_flag_has_help(run_eval):
     missing = [a.option_strings for a in run_eval.build_parser()._actions if not a.help]
     assert not missing
+
+
+# ------------------------------------------------------------------- the legal tier
+def test_default_run_is_still_the_50_task_suite(run_eval, monkeypatch, capsys):
+    run(run_eval, monkeypatch, "--dry-run")
+    ids = dry_run_ids(capsys.readouterr().out)
+    assert len(ids) == 50
+    assert not [i for i in ids if i.startswith("legal-")]
+
+
+def test_tier_legal_selects_only_the_legal_tasks(run_eval, monkeypatch, capsys):
+    run(run_eval, monkeypatch, "--tier", "legal", "--dry-run")
+    ids = dry_run_ids(capsys.readouterr().out)
+    assert len(ids) == 12
+    assert all(i.startswith("legal-") for i in ids)
+
+
+def test_only_names_the_tier_of_an_id_outside_the_selection(run_eval, monkeypatch):
+    with pytest.raises(SystemExit) as exc:
+        run(run_eval, monkeypatch, "--only", "legal-xref-01", "--dry-run")
+    assert "legal-xref-01 is in --tier legal" in str(exc.value.code)
+
+
+def test_legal_run_is_labelled_partial_and_graded(run_eval, monkeypatch, model_server, tmp_path):
+    model_server.reply = lambda model, task_id: completion(
+        {"legal-extract-01": "60", "legal-faith-02": "20"}.get(task_id, "NOT STATED")
+    )
+    out_file = tmp_path / "legal.json"
+    run(
+        run_eval,
+        monkeypatch,
+        "--endpoint", model_server.endpoint,
+        "--models", "model-a",
+        "--tier", "legal",
+        "--only", "legal-extract-01,legal-faith-02,legal-faith-03",
+        "--out", str(out_file),
+    )  # fmt: skip
+    doc = json.loads(out_file.read_text())
+    rows = {r["id"]: r["pass"] for r in doc["results"]["model-a"]["rows"]}
+    assert rows == {"legal-extract-01": True, "legal-faith-02": False, "legal-faith-03": True}
+    assert doc["selection"]["tier"] == "legal"
+    assert doc["selection"]["complete_suite"] is False
