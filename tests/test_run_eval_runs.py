@@ -363,3 +363,8 @@ def test_endpoint_with_no_model_list_is_a_clear_error(run_eval, monkeypatch):
             "instruct-01",
         )
     assert "cannot work out the model-list URL" in str(exc.value.code)
+
+
+def test_every_flag_has_help(run_eval):
+    missing = [a.option_strings for a in run_eval.build_parser()._actions if not a.help]
+    assert not missing

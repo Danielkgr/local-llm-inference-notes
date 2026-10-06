@@ -280,38 +280,62 @@ def load_baseline(path):
     return results
 
 
-def main():
-    ap = argparse.ArgumentParser()
+def build_parser():
+    ap = argparse.ArgumentParser(
+        description="Score OpenAI-compatible models on a graded task suite, with no LLM judge."
+    )
     ap.add_argument(
         "--endpoint",
         default=DEFAULT_ENDPOINT,
         help=f"chat-completions URL (default {DEFAULT_ENDPOINT})",
     )
-    ap.add_argument("--models")
-    ap.add_argument("--category")
-    ap.add_argument("--tier", choices=["core", "hard", "all"], default="all")
-    ap.add_argument("--best-of", type=int, default=1)
+    ap.add_argument(
+        "--models",
+        help="a model name, or a comma-separated list (default: every model the server lists).  "
+        "A served name that contains a comma is taken whole",
+    )
+    ap.add_argument("--category", help="run only the tasks in this category, such as code")
+    ap.add_argument(
+        "--tier",
+        choices=["core", "hard", "all"],
+        default="all",
+        help="core: the 23 original tasks; hard: the 27 generated ones; all: both (default)",
+    )
+    ap.add_argument(
+        "--best-of",
+        type=int,
+        default=1,
+        help="attempts per task; the task passes if any attempt passes (default 1)",
+    )
     # Sampling overrides.  Needed for a FAIR cross-model comparison: models come with
     # different recommended presets, and forcing one preset on all of them measures how
     # well each tolerates that preset, not how capable it is.
-    ap.add_argument("--temperature", type=float)
-    ap.add_argument("--top-p", type=float)
-    ap.add_argument("--top-k", type=int)
-    ap.add_argument("--min-p", type=float)
-    ap.add_argument("--presence-penalty", type=float)
+    ap.add_argument(
+        "--temperature",
+        type=float,
+        help="sampling temperature (default 0, greedy, so older baselines stay comparable)",
+    )
+    ap.add_argument("--top-p", type=float, help="nucleus sampling cutoff, sent only when given")
+    ap.add_argument("--top-k", type=int, help="top-k sampling cutoff, sent only when given")
+    ap.add_argument("--min-p", type=float, help="minimum-probability floor, sent only when given")
+    ap.add_argument("--presence-penalty", type=float, help="presence penalty, sent only when given")
     ap.add_argument(
         "--max-tokens",
         type=int,
         default=16000,
         help="reasoning burns thousands of characters before the answer; on "
-        "this machine 300, 500, 2000 and 4500 each produced EMPTY content "
-        "that was read as a capability failure",
+        "this machine 300, 500, 2000, and 4500 each produced EMPTY content "
+        "that was read as a capability failure, and so did a baseline row at 16000",
     )
     # chat_template_kwargs passthrough (llama.cpp accepts it in the request body).  Needed
     # for models whose template defaults to thinking on: with it on, a small token budget
     # yields reasoning and empty content on every task, so the suite measures the budget.
     #   --chat-kwargs '{"enable_thinking": false}'
-    ap.add_argument("--chat-kwargs")
+    ap.add_argument(
+        "--chat-kwargs",
+        help="a JSON object sent as chat_template_kwargs, for example "
+        "'{\"enable_thinking\": false}'",
+    )
     # Concurrency.  DEFAULT STAYS 1.  Batching changes GEMM shapes and reduction order, so
     # concurrent decoding is not guaranteed bit-identical to sequential even at temperature
     # 0 -- and any baseline recorded sequentially was recorded at --jobs 1.  Raise it only
@@ -322,8 +346,16 @@ def main():
         default=1,
         help="concurrent requests (1 = sequential, matches sequential baselines)",
     )
-    ap.add_argument("--baseline")
-    ap.add_argument("--no-system", action="store_true")
+    ap.add_argument(
+        "--baseline",
+        help="results JSON from an earlier run: report the change in percentage points and "
+        "the tasks that flipped, and supply the selection for --gate and --order",
+    )
+    ap.add_argument(
+        "--no-system",
+        action="store_true",
+        help="send no system prompt (default: a short prose-style system prompt)",
+    )
     ap.add_argument(
         "--out", default=None, help="results JSON (default ./model-eval-<timestamp>.json)"
     )
@@ -364,7 +396,12 @@ def main():
         help="print the selected task ids in run order and exit, so the "
         "selection can be checked without taking the GPU",
     )
-    a = ap.parse_args()
+    return ap
+
+
+def main(argv=None):
+    ap = build_parser()
+    a = ap.parse_args(argv)
     # Checked before anything runs: a typo here used to surface as a raw JSONDecodeError
     # after the model list had already been fetched.
     chat_kwargs = None
