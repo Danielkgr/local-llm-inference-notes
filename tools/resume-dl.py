@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """Downloader that cannot truncate: append-only, verifies 206 before resuming."""
-import os, sys, time, urllib.error, urllib.request
+
+import os
+import sys
+import time
+import urllib.error
+import urllib.request
 
 CHUNK = 1 << 20
 UA = {"User-Agent": "resume-dl/1.0"}
@@ -26,11 +31,15 @@ def attempt(url, dest, total, log):
         if have and code != 206:
             raise RuntimeError(
                 f"resume not honoured (HTTP {code}, expected 206). "
-                f"Refusing to touch the existing {have} bytes.")
+                f"Refusing to touch the existing {have} bytes."
+            )
         if not have and code not in (200, 206):
             raise RuntimeError(f"unexpected HTTP {code}")
-        log(f"  resuming at {have} ({r.headers.get('Content-Range')})" if code == 206
-            else f"  starting fresh (HTTP {code})")
+        log(
+            f"  resuming at {have} ({r.headers.get('Content-Range')})"
+            if code == 206
+            else f"  starting fresh (HTTP {code})"
+        )
         last, start_bytes = time.time(), have
         with open(dest, "ab") as f:
             while True:
@@ -42,8 +51,10 @@ def attempt(url, dest, total, log):
                 now = time.time()
                 if now - last >= 30:
                     rate = (have - start_bytes) / (now - last) / 1e6
-                    log(f"  {have/1e9:.2f} / {total/1e9:.2f} GB "
-                        f"({have/total*100:.1f}%) {rate:.1f} MB/s")
+                    log(
+                        f"  {have / 1e9:.2f} / {total / 1e9:.2f} GB "
+                        f"({have / total * 100:.1f}%) {rate:.1f} MB/s"
+                    )
                     last, start_bytes = now, have
     return have, bool(total and have >= total)
 
