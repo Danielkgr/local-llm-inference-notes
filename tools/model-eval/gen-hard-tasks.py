@@ -24,9 +24,12 @@ Graders are the deterministic ones already in run-eval.py. Notable grader limits
     with explicit "reject" lists wherever one exists.
 """
 
+from __future__ import annotations
+
 import json
 import os
 import sys
+from typing import Any
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "tasks-hard.json")
@@ -79,7 +82,7 @@ def assert_unique(hay, needle_token, task_id):
         )
 
 
-TASKS = []
+TASKS: list[dict[str, Any]] = []
 
 
 def add(**kw):
@@ -437,7 +440,7 @@ def main():
     with open(OUT, "w") as f:
         f.write(render(doc))
 
-    by_cat = {}
+    by_cat: dict[str, int] = {}
     for t in TASKS:
         by_cat[t["category"]] = by_cat.get(t["category"], 0) + 1
     print(f"wrote {OUT}: {len(TASKS)} hard tasks {by_cat}")
