@@ -127,10 +127,10 @@ def g_contains_all(out, t):
 
 def g_regex(out, t):
     for r in t.get("reject", []):
-        if re.search(r, out, re.I):
+        if re.search(r, out, re.IGNORECASE):
             return False, f"matched reject /{r}/"
     for e in t["expect"]:
-        if not re.search(e, out, re.I):
+        if not re.search(e, out, re.IGNORECASE):
             return False, f"no match for /{e}/"
     return True, "ok"
 
@@ -164,13 +164,13 @@ def g_word_count(out, t):
 
 
 def g_json_keys(out, t):
-    s = re.sub(r"^```(?:json)?|```$", "", out.strip(), flags=re.M).strip()
-    m = re.search(r"\{.*\}", s, re.S)
+    s = re.sub(r"^```(?:json)?|```$", "", out.strip(), flags=re.MULTILINE).strip()
+    m = re.search(r"\{.*\}", s, re.DOTALL)
     if not m:
         return False, "no JSON object found"
     try:
         d = json.loads(m.group(0))
-    except Exception as e:
+    except (ValueError, RecursionError) as e:
         return False, f"invalid JSON: {e}"
     miss = [k for k in t["expect"] if k not in d]
     return (not miss), ("missing keys " + ",".join(miss) if miss else "ok")
@@ -416,12 +416,14 @@ def main(argv=None):
             )
 
     # tasks.json predates tiering, so anything without an explicit tier is core.
-    tasks = json.load(open(os.path.join(HERE, "tasks.json")))["tasks"]
+    with open(os.path.join(HERE, "tasks.json")) as f:
+        tasks = json.load(f)["tasks"]
     for t in tasks:
         t.setdefault("tier", "core")
     hard_path = os.path.join(HERE, "tasks-hard.json")
     if os.path.exists(hard_path):
-        tasks += json.load(open(hard_path))["tasks"]
+        with open(hard_path) as f:
+            tasks += json.load(f)["tasks"]
     if a.tier != "all":
         tasks = [t for t in tasks if t.get("tier", "core") == a.tier]
     if a.category:
@@ -555,7 +557,7 @@ def main(argv=None):
     print(f"model-eval -- {len(tasks)} tasks x {len(models)} models, best-of-{a.best_of}")
     print(f"endpoint: {a.endpoint}")
     print(f"tiers: {tier_counts}")
-    print(f"sampling: {sampling if sampling else 'temperature=0 (default, greedy)'}")
+    print(f"sampling: {sampling or 'temperature=0 (default, greedy)'}")
     print(f"system prompt: {'none' if a.no_system else 'prose-default'}\n")
 
     results = {}
@@ -610,7 +612,7 @@ def main(argv=None):
                 passed, why, best = _run_task(t)
                 if not passed:
                     new_fails.append(t["id"])
-            if why.startswith("EMPTY") or why.startswith("API:"):
+            if why.startswith(("EMPTY", "API:")):
                 errs += 1
                 mark = "ERR "
             else:
@@ -682,35 +684,33 @@ def main(argv=None):
     # Record HOW the run was made.  Two baselines on this machine do not say what sampling
     # or token budget produced them, which makes "match the baseline's settings" an
     # instruction nobody can check -- the numbers have to be reasoned about instead of read.
-    json.dump(
-        {
-            "when": time.strftime("%Y-%m-%d %H:%M:%S"),
-            "system": system,
-            "endpoint": a.endpoint,
-            "settings": {
-                "sampling": sampling or {"temperature": 0},
-                "max_tokens": a.max_tokens,
-                "jobs": a.jobs,
-                "best_of": a.best_of,
-                "chat_kwargs": a.chat_kwargs,
-            },
-            "selection": {
-                "tier": a.tier,
-                "category": a.category,
-                "only": a.only,
-                "gate": a.gate,
-                "order": a.order,
-                "baseline": a.baseline,
-                "n_tasks": len(tasks),
-                "complete_suite": (
-                    a.gate == "all" and not a.only and a.tier == "all" and not a.category
-                ),
-            },
-            "results": results,
+    record = {
+        "when": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "system": system,
+        "endpoint": a.endpoint,
+        "settings": {
+            "sampling": sampling or {"temperature": 0},
+            "max_tokens": a.max_tokens,
+            "jobs": a.jobs,
+            "best_of": a.best_of,
+            "chat_kwargs": a.chat_kwargs,
         },
-        open(out, "w"),
-        indent=1,
-    )
+        "selection": {
+            "tier": a.tier,
+            "category": a.category,
+            "only": a.only,
+            "gate": a.gate,
+            "order": a.order,
+            "baseline": a.baseline,
+            "n_tasks": len(tasks),
+            "complete_suite": (
+                a.gate == "all" and not a.only and a.tier == "all" and not a.category
+            ),
+        },
+        "results": results,
+    }
+    with open(out, "w") as f:
+        json.dump(record, f, indent=1)
     print(f"\nsaved -> {out}")
 
     if a.baseline:
