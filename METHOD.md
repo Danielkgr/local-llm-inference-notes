@@ -1,8 +1,8 @@
 # Measurement rules
 
-The rules this repository holds itself to.  Each one is here because breaking it
-produced a wrong result that was about to be published, and most of the notes are
-the record of that happening.
+The rules this repository holds itself to.  Most of them are here because
+breaking them produced a wrong result that was about to be published, and most of
+the notes are the record of that happening.
 
 ## Running a measurement
 
@@ -26,9 +26,8 @@ keep.  Baselines older than the current sitting are documentation, not
 measurements.  This rule exists because a week-old baseline turned a 3.4 per cent
 null into an apparent 7 tok/s win.
 
-**Alternate the arms rather than running them in blocks.**  Block-sequential A/B
-on this machine fabricated a regression that interleaving disproved.  Thermal and
-cache state drift over a session, and a block design aliases that drift onto the
+**Alternate the arms rather than running them in blocks.**  Thermal and cache
+state drift over a session, and a block design aliases that drift onto the
 variable under test.
 
 **Give every prompt a per-request nonce.**  Prompt-cache hits on repeated
@@ -56,7 +55,6 @@ convincing null.
 
 **Never attribute a delta measured across two different methods.**  Comparing a
 number from one harness against a number from another measures the harnesses.
-Several claims on this machine were retracted for exactly this.
 
 **Check the apparatus could have produced a different answer.**  A result of
 exactly zero, or exactly the maximum, usually indicts the harness rather than the
@@ -132,9 +130,8 @@ checked has a way of turning out to describe a different one.
 Do not quietly drop it.  The excluded rows and the reason belong in the note.
 
 **A verifier that has never been seen to fail has not been tested.**  Exercise
-every branch of a check against a known-bad input before trusting it.  Two
-detectors on this machine passed their own self-tests while testing a copy of
-their logic rather than the script itself.
+every branch of a check against a known-bad input before trusting it.  A
+self-test has to exercise the script itself, not a copy of its logic.
 
 **Label a partial run inside its own output.**  Any run that was filtered, gated,
 or aborted must carry the selection that produced it, so a twelve-task gate can
