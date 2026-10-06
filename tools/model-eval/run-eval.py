@@ -58,6 +58,7 @@ import os
 import re
 import sys
 import time
+import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
@@ -67,19 +68,51 @@ DEFAULT_ENDPOINT = os.environ.get(
 )
 
 
+def models_url(endpoint):
+    """The model-list URL that sits beside a chat-completions endpoint, or None.
+
+    OpenAI-compatible servers list models next to the completions route, so a trailing
+    /chat/completions becomes /models.  That covers /v1/ servers and ones mounted
+    elsewhere, such as /api/chat/completions.  Any other endpoint containing /v1/ keeps
+    the original rule: everything before /v1/, then /v1/models.
+    """
+    parts = urllib.parse.urlsplit(endpoint)
+    path = parts.path.rstrip("/")
+    if path.endswith("/chat/completions"):
+        path = path[: -len("/chat/completions")] + "/models"
+    elif "/v1/" in path + "/":
+        path = (path + "/").split("/v1/")[0] + "/v1/models"
+    else:
+        return None
+    return urllib.parse.urlunsplit(parts._replace(path=path))
+
+
 def discover_models(endpoint):
     """Ask the server what it serves.
 
     The model list used to be hardcoded, which made the harness unusable by
     anyone else and silently stale whenever a model was renamed.
     """
-    base = endpoint.split("/v1/")[0] + "/v1/models"
-    try:
-        with urllib.request.urlopen(base, timeout=10) as r:
-            return [m["id"] for m in json.load(r).get("data", [])]
-    except Exception as e:
+    url = models_url(endpoint)
+    if url is None:
         sys.exit(
-            f"could not list models from {base}: {e}\npass --models explicitly, or check --endpoint"
+            f"cannot work out the model-list URL from --endpoint {endpoint}: "
+            "expected a path ending in /chat/completions"
+        )
+    try:
+        with urllib.request.urlopen(url, timeout=10) as r:
+            return [m["id"] for m in json.load(r).get("data", [])]
+    except (
+        OSError,
+        ValueError,
+        http.client.HTTPException,
+        KeyError,
+        TypeError,
+        AttributeError,
+    ) as e:
+        sys.exit(
+            f"could not list models from {url}: {e}\ncheck --endpoint: names given with "
+            "--models are resolved against this list, so it is needed either way"
         )
 
 

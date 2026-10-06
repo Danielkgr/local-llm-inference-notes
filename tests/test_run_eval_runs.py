@@ -320,3 +320,46 @@ def test_served_name_containing_a_comma_is_taken_whole(run_eval, monkeypatch, tm
         assert server.count("instruct-01") == 1
     finally:
         server.close()
+
+
+# ------------------------------------------------------------------ model list URL
+@pytest.mark.parametrize(
+    ("endpoint", "want"),
+    [
+        ("http://127.0.0.1:10000/v1/chat/completions", "http://127.0.0.1:10000/v1/models"),
+        ("http://host:3000/api/chat/completions", "http://host:3000/api/models"),
+        ("http://host:8080/chat/completions", "http://host:8080/models"),
+        ("http://host:8080/v1/chat/completions/", "http://host:8080/v1/models"),
+        ("http://host:8080/v1/completions", "http://host:8080/v1/models"),
+        ("http://host/generate", None),
+    ],
+)
+def test_models_url(run_eval, endpoint, want):
+    assert run_eval.models_url(endpoint) == want
+
+
+def test_endpoint_without_v1_is_discovered(run_eval, monkeypatch, model_server, tmp_path):
+    out_file = tmp_path / "api.json"
+    run(
+        run_eval,
+        monkeypatch,
+        "--endpoint", model_server.base + "/api/chat/completions",
+        "--models", "model-a",
+        "--only", "instruct-01",
+        "--out", str(out_file),
+    )  # fmt: skip
+    assert list(json.loads(out_file.read_text())["results"]) == ["model-a"]
+    assert model_server.count("instruct-01") == 1
+
+
+def test_endpoint_with_no_model_list_is_a_clear_error(run_eval, monkeypatch):
+    with pytest.raises(SystemExit) as exc:
+        run(
+            run_eval,
+            monkeypatch,
+            "--endpoint",
+            "http://127.0.0.1:9/generate",
+            "--only",
+            "instruct-01",
+        )
+    assert "cannot work out the model-list URL" in str(exc.value.code)
