@@ -16,7 +16,7 @@
 
 ## In plain English
 
-Daniel Glynn-Roe is a lawyer in Melbourne.  This repository records his measurements of language models running on hardware he controls, including the measurements that turned out to be wrong.  The same questions decide whether a law firm can put a model to work on client matters.
+Daniel Glynn-Roe is a lawyer in Melbourne.  This repository records measurements of language models running on a workstation under the author's own control, including the measurements that turned out to be wrong.  The same questions decide whether a law firm can put a model to work on client matters.
 
 - **Is the model good enough?**  Vendor claims and public leaderboards were measured on someone else's tasks and machines.  Only a measurement on the firm's own work answers the question, and most of these notes show how easily that measurement goes wrong.
 - **Where does client material go?**  A model that runs locally keeps confidential and privileged client material on hardware the firm controls, instead of sending it to a cloud provider.  That privacy holds only while every tool in the chain is set up not to send data out, which also needs checking.
