@@ -10,6 +10,16 @@ import urllib.request
 
 CHUNK = 1 << 20
 UA = {"User-Agent": "resume-dl/1.0"}
+# 408 and 429 ask the client to come back later, so they are worth waiting out.  Any
+# other 4xx gives the same answer on every attempt: retrying a 404 500 times, with
+# back-off, spends hours and hides the real error.
+RETRYABLE_CLIENT_ERRORS = {408, 429}
+
+
+def retryable(e):
+    if isinstance(e, urllib.error.HTTPError):
+        return e.code >= 500 or e.code in RETRYABLE_CLIENT_ERRORS
+    return True
 
 
 def head_size(url):
@@ -82,7 +92,16 @@ def main(argv=None):
     def log(m):
         print(f"{time.strftime('%H:%M:%S')} {m}", flush=True)
 
-    total = expect or head_size(url)
+    if expect:
+        total = expect
+    else:
+        try:
+            total = head_size(url)
+        except (urllib.error.URLError, OSError) as e:
+            sys.exit(
+                f"ERROR: could not determine size ({e}); refusing to run blind.  "
+                "Pass --expect BYTES if the server will not answer HEAD."
+            )
     if not total:
         sys.exit("ERROR: could not determine size; refusing to run blind.")
     log(f"target {total} bytes -> {dest}")
@@ -99,6 +118,8 @@ def main(argv=None):
         except RuntimeError as e:
             sys.exit(f"FATAL: {e}")
         except (urllib.error.URLError, OSError, TimeoutError) as e:
+            if not retryable(e):
+                sys.exit(f"FATAL: {e}; a client error will not change on retry.")
             tries += 1
             if tries > 500:
                 sys.exit(f"giving up after {tries} retries: {e}")
