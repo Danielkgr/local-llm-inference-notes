@@ -25,6 +25,8 @@ and `/slots`, but only under `/upstream/<url-encoded-model-id>/...`.  A bare
 at all.
 """
 
+from __future__ import annotations
+
 import argparse
 import http.client
 import json
@@ -33,6 +35,7 @@ import re
 import sqlite3
 import urllib.parse
 import urllib.request
+from typing import Any
 
 DEF_CONF = os.environ.get(
     "LLAMA_SWAP_CONFIG", os.path.expanduser("~/.config/llama-swap/config.yaml")
@@ -65,7 +68,7 @@ def configured_ctx(conf_path):
 def chat_stats(db_path, limit):
     """model id -> (last prompt tokens, max prompt tokens, n samples)."""
     con = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
-    stats = {}
+    stats: dict[str, tuple[int | None, int, int]] = {}
     rows = con.execute("select chat from chat order by updated_at desc limit ?", (limit,))
     for (blob,) in rows:
         try:
@@ -97,7 +100,7 @@ def fetch_json(url, timeout):
 
 def live_slots(swap_url):
     """model id -> (n_slots, n_ctx, busy) for whatever is currently loaded."""
-    out = {}
+    out: dict[str, tuple[int, Any, int]] = {}
     run = fetch_json(swap_url + "/running", timeout=5)
     if not isinstance(run, dict):
         return out
@@ -131,7 +134,7 @@ def main():
     live = live_slots(a.endpoint)
 
     # fold alias-keyed history onto the canonical model id
-    folded = {}
+    folded: dict[str, tuple[int | None, int, int]] = {}
     for mid, v in stats.items():
         key = mid if mid in ctx else alias.get(mid, mid)
         if key in folded:

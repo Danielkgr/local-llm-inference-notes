@@ -51,6 +51,8 @@ Design decisions that matter:
     12-task gate can never be read back as "12/50".
 """
 
+from __future__ import annotations
+
 import argparse
 import http.client
 import json
@@ -61,6 +63,7 @@ import time
 import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
+from typing import Any
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_ENDPOINT = os.environ.get(
@@ -214,8 +217,10 @@ def ask(endpoint, model, prompt, system, max_tokens, timeout=900, sampling=None)
     body = {"model": model, "messages": msgs, "max_tokens": max_tokens, "temperature": 0}
     if sampling:
         body.update(sampling)
-    body = json.dumps(body).encode()
-    req = urllib.request.Request(endpoint, data=body, headers={"Content-Type": "application/json"})
+    payload = json.dumps(body).encode()
+    req = urllib.request.Request(
+        endpoint, data=payload, headers={"Content-Type": "application/json"}
+    )
     t0 = time.time()
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
@@ -537,7 +542,7 @@ def main(argv=None):
         )
     )
 
-    tier_counts = {}
+    tier_counts: dict[str, int] = {}
     for t in tasks:
         tier_counts[t.get("tier", "core")] = tier_counts.get(t.get("tier", "core"), 0) + 1
     sampling = {}
@@ -562,7 +567,10 @@ def main(argv=None):
 
     results = {}
     for m in models:
-        per_cat, per_tier, rows, errs = {}, {}, [], 0
+        per_cat: dict[str, list[bool]] = {}
+        per_tier: dict[str, list[bool]] = {}
+        rows: list[dict[str, Any]] = []
+        errs = 0
         print(f"=== {m} ===")
 
         # The model is bound as a default argument rather than read from the loop
