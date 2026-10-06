@@ -10,6 +10,7 @@ changes.
   ./run-eval.py --models "my-model"        # one or more, comma separated
   ./run-eval.py --category code            # one category
   ./run-eval.py --tier core                # the 23 original tasks only
+  ./run-eval.py --tier legal               # the synthetic legal tier, never in the default run
   ./run-eval.py --baseline FILE.json       # compare against a previous run
   ./run-eval.py --no-system                # ignore the prose system prompt
   ./run-eval.py --endpoint http://host:8080/v1/chat/completions
@@ -36,7 +37,10 @@ Design decisions that matter:
   * TIERS: "core" is the 23 original tasks (tasks.json); "hard" is 27 more
     (tasks-hard.json, produced by gen-hard-tasks.py).  The core tier ceilinged:
     the strongest model scored 23/23, so a candidate could only tie, and the
-    suite could detect a regression but never a gain.
+    suite could detect a regression but never a gain.  "legal" is 12 tasks over
+    synthetic contract and policy excerpts (tasks-legal.json, produced by
+    gen-legal-tasks.py).  It runs only with --tier legal, so "all" stays the
+    50-task suite that every recorded baseline used.  It has not yet been run.
   * --baseline compares PERCENTAGES, not raw scores, and lists which individual
     tasks flipped.  Raw-score diffing across suites of different size is actively
     misleading: 23/23 -> 37/50 prints as "+14" while per-task accuracy has in
@@ -302,9 +306,11 @@ def build_parser():
     ap.add_argument("--category", help="run only the tasks in this category, such as code")
     ap.add_argument(
         "--tier",
-        choices=["core", "hard", "all"],
+        choices=["core", "hard", "all", "legal"],
         default="all",
-        help="core: the 23 original tasks; hard: the 27 generated ones; all: both (default)",
+        help="core: the 23 original tasks; hard: the 27 generated ones; all: both, the "
+        "50-task suite (default); legal: 12 synthetic contract and policy tasks, which run "
+        "only when named here",
     )
     ap.add_argument(
         "--best-of",
@@ -425,11 +431,17 @@ def main(argv=None):
         tasks = json.load(f)["tasks"]
     for t in tasks:
         t.setdefault("tier", "core")
-    hard_path = os.path.join(HERE, "tasks-hard.json")
-    if os.path.exists(hard_path):
-        with open(hard_path) as f:
-            tasks += json.load(f)["tasks"]
-    if a.tier != "all":
+    for name in ("tasks-hard.json", "tasks-legal.json"):
+        path = os.path.join(HERE, name)
+        if os.path.exists(path):
+            with open(path) as f:
+                tasks += json.load(f)["tasks"]
+    every_id = {t["id"]: t.get("tier", "core") for t in tasks}
+    if a.tier == "all":
+        # "all" is the 50-task suite every baseline here was scored on.  The legal tier
+        # runs only when named, so adding it changed no existing total or comparison.
+        tasks = [t for t in tasks if t.get("tier", "core") != "legal"]
+    else:
         tasks = [t for t in tasks if t.get("tier", "core") == a.tier]
     if a.category:
         tasks = [t for t in tasks if t["category"] == a.category]
@@ -479,7 +491,9 @@ def main(argv=None):
         want = {i.strip() for i in a.only.split(",") if i.strip()}
         missing = want - {t["id"] for t in tasks}
         if missing:  # a typo would otherwise silently shrink the run -- same class of trap
-            sys.exit(f"--only: no such task id(s): {', '.join(sorted(missing))}")
+            elsewhere = sorted(f"{i} is in --tier {every_id[i]}" for i in missing if i in every_id)
+            hint = f" ({'; '.join(elsewhere)})" if elsewhere else ""
+            sys.exit(f"--only: no such task id(s): {', '.join(sorted(missing))}{hint}")
         tasks = [t for t in tasks if t["id"] in want]
 
     if a.gate != "all":
