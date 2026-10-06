@@ -1,0 +1,46 @@
+# Configuration for the checks CI runs over tools/ and tests/.
+#
+# The tools are standalone scripts, not an installable package, so there is no
+# [project] table and nothing here changes how they run.  Each one still runs
+# directly, for example ./tools/model-eval/run-eval.py --help.
+#
+# Install the checkers with:  pip install -r requirements-dev.txt
+
+[tool.ruff]
+# The tools README promises Python 3.8 or newer, so lint and format for it.
+target-version = "py38"
+line-length = 100
+# Python only.  Ruff also formats code blocks inside Markdown by default, and the
+# notes are prose whose snippets quote what was actually run.
+include = ["*.py", "*.pyi", "**/pyproject.toml"]
+
+[tool.ruff.lint]
+select = [
+    "E4", "E7", "E9",  # pycodestyle errors; the formatter owns line length
+    "W",               # pycodestyle warnings
+    "F",               # pyflakes
+    "I",               # import sorting
+    "B",               # bugbear, including late-bound loop variables in closures
+    "BLE",             # blind `except Exception`
+    "SIM",             # simplifications, including files opened without a context manager
+    "UP",              # syntax the target version makes unnecessary
+    "PIE",
+    "FURB",
+    "RUF",
+    "S110", "S112",    # an exception swallowed by pass or continue
+    "EXE",             # a shebang must match the executable bit
+]
+
+[tool.mypy]
+# mypy cannot target anything older than 3.10.  Python 3.8 compatibility is
+# checked by running the tests and the generators on 3.8 instead.
+python_version = "3.10"
+files = ["tools", "tests"]
+check_untyped_defs = true
+strict_equality = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"

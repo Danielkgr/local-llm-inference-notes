@@ -10,6 +10,7 @@ changes.
   ./run-eval.py --models "my-model"        # one or more, comma separated
   ./run-eval.py --category code            # one category
   ./run-eval.py --tier core                # the 23 original tasks only
+  ./run-eval.py --tier legal               # the synthetic legal tier, never in the default run
   ./run-eval.py --baseline FILE.json       # compare against a previous run
   ./run-eval.py --no-system                # ignore the prose system prompt
   ./run-eval.py --endpoint http://host:8080/v1/chat/completions
@@ -36,7 +37,10 @@ Design decisions that matter:
   * TIERS: "core" is the 23 original tasks (tasks.json); "hard" is 27 more
     (tasks-hard.json, produced by gen-hard-tasks.py).  The core tier ceilinged:
     the strongest model scored 23/23, so a candidate could only tie, and the
-    suite could detect a regression but never a gain.
+    suite could detect a regression but never a gain.  "legal" is 12 tasks over
+    synthetic contract and policy excerpts (tasks-legal.json, produced by
+    gen-legal-tasks.py).  It runs only with --tier legal, so "all" stays the
+    50-task suite that every recorded baseline used.  It has not yet been run.
   * --baseline compares PERCENTAGES, not raw scores, and lists which individual
     tasks flipped.  Raw-score diffing across suites of different size is actively
     misleading: 23/23 -> 37/50 prints as "+14" while per-task accuracy has in
@@ -50,12 +54,44 @@ Design decisions that matter:
     their selection into the results file with a complete_suite flag, so a
     12-task gate can never be read back as "12/50".
 """
-import argparse, json, os, re, sys, time, urllib.request
+
+from __future__ import annotations
+
+import argparse
+import http.client
+import json
+import os
+import re
+import sys
+import time
+import urllib.parse
+import urllib.request
 from concurrent.futures import ThreadPoolExecutor
+from typing import Any
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_ENDPOINT = os.environ.get(
-    "MODEL_EVAL_ENDPOINT", "http://127.0.0.1:10000/v1/chat/completions")
+    "MODEL_EVAL_ENDPOINT", "http://127.0.0.1:10000/v1/chat/completions"
+)
+
+
+def models_url(endpoint):
+    """The model-list URL that sits beside a chat-completions endpoint, or None.
+
+    OpenAI-compatible servers list models next to the completions route, so a trailing
+    /chat/completions becomes /models.  That covers /v1/ servers and ones mounted
+    elsewhere, such as /api/chat/completions.  Any other endpoint containing /v1/ keeps
+    the original rule: everything before /v1/, then /v1/models.
+    """
+    parts = urllib.parse.urlsplit(endpoint)
+    path = parts.path.rstrip("/")
+    if path.endswith("/chat/completions"):
+        path = path[: -len("/chat/completions")] + "/models"
+    elif "/v1/" in path + "/":
+        path = (path + "/").split("/v1/")[0] + "/v1/models"
+    else:
+        return None
+    return urllib.parse.urlunsplit(parts._replace(path=path))
 
 
 def discover_models(endpoint):
@@ -64,13 +100,27 @@ def discover_models(endpoint):
     The model list used to be hardcoded, which made the harness unusable by
     anyone else and silently stale whenever a model was renamed.
     """
-    base = endpoint.split("/v1/")[0] + "/v1/models"
+    url = models_url(endpoint)
+    if url is None:
+        sys.exit(
+            f"cannot work out the model-list URL from --endpoint {endpoint}: "
+            "expected a path ending in /chat/completions"
+        )
     try:
-        with urllib.request.urlopen(base, timeout=10) as r:
+        with urllib.request.urlopen(url, timeout=10) as r:
             return [m["id"] for m in json.load(r).get("data", [])]
-    except Exception as e:
-        sys.exit(f"could not list models from {base}: {e}\n"
-                 f"pass --models explicitly, or check --endpoint")
+    except (
+        OSError,
+        ValueError,
+        http.client.HTTPException,
+        KeyError,
+        TypeError,
+        AttributeError,
+    ) as e:
+        sys.exit(
+            f"could not list models from {url}: {e}\ncheck --endpoint: names given with "
+            "--models are resolved against this list, so it is needed either way"
+        )
 
 
 # ----------------------------------------------------------------- graders
@@ -84,22 +134,22 @@ def g_contains_all(out, t):
 
 def g_regex(out, t):
     for r in t.get("reject", []):
-        if re.search(r, out, re.I):
+        if re.search(r, out, re.IGNORECASE):
             return False, f"matched reject /{r}/"
     for e in t["expect"]:
-        if not re.search(e, out, re.I):
+        if not re.search(e, out, re.IGNORECASE):
             return False, f"no match for /{e}/"
     return True, "ok"
 
 
 def g_starts_with_any(out, t):
-    head = re.sub(r'^[^a-z]*', '', out.strip().lower())[:40]
+    head = re.sub(r"^[^a-z]*", "", out.strip().lower())[:40]
     ok = any(head.startswith(e.lower()) for e in t["expect"])
     return ok, "ok" if ok else f"starts with {head[:20]!r}"
 
 
 def g_numeric(out, t):
-    nums = [float(x) for x in re.findall(r'-?\d+(?:\.\d+)?', out.replace(',', ''))]
+    nums = [float(x) for x in re.findall(r"-?\d+(?:\.\d+)?", out.replace(",", ""))]
     if not nums:
         return False, "no number in output"
     tol = t.get("tolerance", 0.01)
@@ -108,7 +158,7 @@ def g_numeric(out, t):
 
 
 def g_exact_word(out, t):
-    w = re.sub(r'[^a-z]', '', out.strip().lower())
+    w = re.sub(r"[^a-z]", "", out.strip().lower())
     ok = w in [e.lower() for e in t["expect"]]
     return ok, "ok" if ok else f"got {out.strip()[:30]!r}"
 
@@ -121,13 +171,13 @@ def g_word_count(out, t):
 
 
 def g_json_keys(out, t):
-    s = re.sub(r'^```(?:json)?|```$', '', out.strip(), flags=re.M).strip()
-    m = re.search(r'\{.*\}', s, re.S)
+    s = re.sub(r"^```(?:json)?|```$", "", out.strip(), flags=re.MULTILINE).strip()
+    m = re.search(r"\{.*\}", s, re.DOTALL)
     if not m:
         return False, "no JSON object found"
     try:
         d = json.loads(m.group(0))
-    except Exception as e:
+    except (ValueError, RecursionError) as e:
         return False, f"invalid JSON: {e}"
     miss = [k for k in t["expect"] if k not in d]
     return (not miss), ("missing keys " + ",".join(miss) if miss else "ok")
@@ -144,16 +194,22 @@ def g_contains_any_and_short(out, t):
 
 
 GRADERS = {
-    "contains_all": g_contains_all, "regex": g_regex, "starts_with_any": g_starts_with_any,
-    "numeric": g_numeric, "exact_word": g_exact_word, "word_count": g_word_count,
-    "json_keys": g_json_keys, "contains_any_and_short": g_contains_any_and_short,
+    "contains_all": g_contains_all,
+    "regex": g_regex,
+    "starts_with_any": g_starts_with_any,
+    "numeric": g_numeric,
+    "exact_word": g_exact_word,
+    "word_count": g_word_count,
+    "json_keys": g_json_keys,
+    "contains_any_and_short": g_contains_any_and_short,
 }
 
 
 # ----------------------------------------------------------------- runner
 def ask(endpoint, model, prompt, system, max_tokens, timeout=900, sampling=None):
-    msgs = ([{"role": "system", "content": system}] if system else []) + \
-           [{"role": "user", "content": prompt}]
+    msgs = ([{"role": "system", "content": system}] if system else []) + [
+        {"role": "user", "content": prompt}
+    ]
     # Sampling was hardcoded to temperature=0 in an earlier version, which made the
     # harness STRUCTURALLY UNABLE to measure any model that is loop-prone under greedy
     # decoding.  One candidate scored 44/50 purely because temperature 0 made it emit
@@ -165,86 +221,227 @@ def ask(endpoint, model, prompt, system, max_tokens, timeout=900, sampling=None)
     body = {"model": model, "messages": msgs, "max_tokens": max_tokens, "temperature": 0}
     if sampling:
         body.update(sampling)
-    body = json.dumps(body).encode()
-    req = urllib.request.Request(endpoint, data=body,
-                                 headers={"Content-Type": "application/json"})
+    payload = json.dumps(body).encode()
+    req = urllib.request.Request(
+        endpoint, data=payload, headers={"Content-Type": "application/json"}
+    )
     t0 = time.time()
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
             d = json.load(r)
-    except Exception as e:
+    except (OSError, ValueError, http.client.HTTPException) as e:
+        # OSError covers URLError, HTTPError, refused connections, and timeouts;
+        # ValueError covers a body that is not JSON.
         return {"error": str(e), "content": "", "secs": time.time() - t0}
-    ch = d["choices"][0]
-    tm = d.get("timings") or {}
-    return {"content": (ch["message"].get("content") or "").strip(),
-            "reasoning": (ch["message"].get("reasoning_content") or "").strip(),
-            "finish": ch.get("finish_reason"), "secs": time.time() - t0,
-            "tok_s": tm.get("predicted_per_second")}
+    # A server can answer 200 with an error object and no choices, for example when a
+    # model fails to load.  That is an API error for this one task, counted in the error
+    # column like any other, not a reason to abandon the whole run.
+    try:
+        ch = d["choices"][0]
+        content = (ch["message"].get("content") or "").strip()
+        reasoning = (ch["message"].get("reasoning_content") or "").strip()
+        tok_s = (d.get("timings") or {}).get("predicted_per_second")
+    except (KeyError, IndexError, TypeError, AttributeError):
+        return {"error": describe_bad_body(d), "content": "", "secs": time.time() - t0}
+    return {
+        "content": content,
+        "reasoning": reasoning,
+        "finish": ch.get("finish_reason"),
+        "secs": time.time() - t0,
+        "tok_s": tok_s,
+    }
 
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--endpoint", default=DEFAULT_ENDPOINT,
-                    help=f"chat-completions URL (default {DEFAULT_ENDPOINT})")
-    ap.add_argument("--models"); ap.add_argument("--category")
-    ap.add_argument("--tier", choices=["core", "hard", "all"], default="all")
-    ap.add_argument("--best-of", type=int, default=1)
+def describe_bad_body(d):
+    """A short reason for a response that parsed as JSON but held no usable choice."""
+    err = d.get("error") if isinstance(d, dict) else None
+    if isinstance(err, dict):
+        err = err.get("message") or json.dumps(err)
+    if err:
+        return f"error body: {err}"
+    return "no choices in response: " + json.dumps(d)[:120]
+
+
+def load_baseline(path):
+    """The results of an earlier run, or a clear exit saying why the file cannot be used."""
+    try:
+        with open(path) as f:
+            doc = json.load(f)
+    except OSError as e:
+        sys.exit(f"--baseline: cannot read {path}: {e.strerror or e}")
+    except ValueError as e:
+        sys.exit(f"--baseline: {path} is not valid JSON ({e})")
+    results = doc.get("results") if isinstance(doc, dict) else None
+    if not isinstance(results, dict) or not results:
+        sys.exit(f"--baseline: {path} has no results, so it is not a run-eval.py results file")
+    for model, r in results.items():
+        rows = r.get("rows") if isinstance(r, dict) else None
+        if (
+            not isinstance(rows, list)
+            or "score" not in r
+            or "total" not in r
+            or not all(isinstance(row, dict) and "id" in row and "pass" in row for row in rows)
+        ):
+            sys.exit(
+                f"--baseline: {path} results for {model!r} need score, total, "
+                "and rows with an id and a pass"
+            )
+    return results
+
+
+def build_parser():
+    ap = argparse.ArgumentParser(
+        description="Score OpenAI-compatible models on a graded task suite, with no LLM judge."
+    )
+    ap.add_argument(
+        "--endpoint",
+        default=DEFAULT_ENDPOINT,
+        help=f"chat-completions URL (default {DEFAULT_ENDPOINT})",
+    )
+    ap.add_argument(
+        "--models",
+        help="a model name, or a comma-separated list (default: every model the server lists).  "
+        "A served name that contains a comma is taken whole",
+    )
+    ap.add_argument("--category", help="run only the tasks in this category, such as code")
+    ap.add_argument(
+        "--tier",
+        choices=["core", "hard", "all", "legal"],
+        default="all",
+        help="core: the 23 original tasks; hard: the 27 generated ones; all: both, the "
+        "50-task suite (default); legal: 12 synthetic contract and policy tasks, which run "
+        "only when named here",
+    )
+    ap.add_argument(
+        "--best-of",
+        type=int,
+        default=1,
+        help="attempts per task; the task passes if any attempt passes (default 1)",
+    )
     # Sampling overrides.  Needed for a FAIR cross-model comparison: models come with
     # different recommended presets, and forcing one preset on all of them measures how
     # well each tolerates that preset, not how capable it is.
-    ap.add_argument("--temperature", type=float)
-    ap.add_argument("--top-p", type=float)
-    ap.add_argument("--top-k", type=int)
-    ap.add_argument("--min-p", type=float)
-    ap.add_argument("--presence-penalty", type=float)
-    ap.add_argument("--max-tokens", type=int, default=16000,
-                    help="reasoning burns thousands of characters before the answer; on "
-                         "this machine 300, 500, 2000 and 4500 each produced EMPTY content "
-                         "that was read as a capability failure")
+    ap.add_argument(
+        "--temperature",
+        type=float,
+        help="sampling temperature (default 0, greedy, so older baselines stay comparable)",
+    )
+    ap.add_argument("--top-p", type=float, help="nucleus sampling cutoff, sent only when given")
+    ap.add_argument("--top-k", type=int, help="top-k sampling cutoff, sent only when given")
+    ap.add_argument("--min-p", type=float, help="minimum-probability floor, sent only when given")
+    ap.add_argument("--presence-penalty", type=float, help="presence penalty, sent only when given")
+    ap.add_argument(
+        "--max-tokens",
+        type=int,
+        default=16000,
+        help="reasoning burns thousands of characters before the answer; on "
+        "this machine 300, 500, 2000, and 4500 each produced EMPTY content "
+        "that was read as a capability failure, and so did a baseline row at 16000",
+    )
     # chat_template_kwargs passthrough (llama.cpp accepts it in the request body).  Needed
     # for models whose template defaults to thinking on: with it on, a small token budget
     # yields reasoning and empty content on every task, so the suite measures the budget.
     #   --chat-kwargs '{"enable_thinking": false}'
-    ap.add_argument("--chat-kwargs")
+    ap.add_argument(
+        "--chat-kwargs",
+        help="a JSON object sent as chat_template_kwargs, for example "
+        "'{\"enable_thinking\": false}'",
+    )
     # Concurrency.  DEFAULT STAYS 1.  Batching changes GEMM shapes and reduction order, so
     # concurrent decoding is not guaranteed bit-identical to sequential even at temperature
     # 0 -- and any baseline recorded sequentially was recorded at --jobs 1.  Raise it only
     # for exploratory runs, or after proving identity on your own hardware.
-    ap.add_argument("--jobs", type=int, default=1,
-                    help="concurrent requests (1 = sequential, matches sequential baselines)")
-    ap.add_argument("--baseline"); ap.add_argument("--no-system", action="store_true")
-    ap.add_argument("--out", default=None,
-                    help="results JSON (default ./model-eval-<timestamp>.json)")
+    ap.add_argument(
+        "--jobs",
+        type=int,
+        default=1,
+        help="concurrent requests (1 = sequential, matches sequential baselines)",
+    )
+    ap.add_argument(
+        "--baseline",
+        help="results JSON from an earlier run: report the change in percentage points and "
+        "the tasks that flipped, and supply the selection for --gate and --order",
+    )
+    ap.add_argument(
+        "--no-system",
+        action="store_true",
+        help="send no system prompt (default: a short prose-style system prompt)",
+    )
+    ap.add_argument(
+        "--out", default=None, help="results JSON (default ./model-eval-<timestamp>.json)"
+    )
     # ---- failure-set gate ------------------------------------------------------------
-    ap.add_argument("--only", metavar="IDS",
-                    help="run only these task ids (comma list)")
-    ap.add_argument("--gate", choices=["passed", "failed", "all"], default="all",
-                    help="restrict to tasks the --baseline model PASSED (the only ones that "
-                         "can disqualify a candidate) or FAILED (upside only). "
-                         "Requires --baseline.")
-    ap.add_argument("--gate-model", metavar="NAME",
-                    help="which model key inside --baseline to gate against "
-                         "(default: the sole key; error if ambiguous)")
-    ap.add_argument("--gate-stop-after", type=int, default=0, metavar="N",
-                    help="abort after N tasks that the baseline passed have FAILED "
-                         "(0 = off).  Each is retried once before it counts.")
-    ap.add_argument("--order", choices=["file", "baseline-slowest", "baseline-fastest"],
-                    default="file",
-                    help="task order.  baseline-slowest puts the baseline's most expensive "
-                         "tasks first, so a doomed candidate reveals itself in minutes.")
-    ap.add_argument("--dry-run", action="store_true",
-                    help="print the selected task ids in run order and exit, so the "
-                         "selection can be checked without taking the GPU")
-    a = ap.parse_args()
+    ap.add_argument("--only", metavar="IDS", help="run only these task ids (comma list)")
+    ap.add_argument(
+        "--gate",
+        choices=["passed", "failed", "all"],
+        default="all",
+        help="restrict to tasks the --baseline model PASSED (the only ones that "
+        "can disqualify a candidate) or FAILED (upside only). "
+        "Requires --baseline.",
+    )
+    ap.add_argument(
+        "--gate-model",
+        metavar="NAME",
+        help="which model key inside --baseline to gate against "
+        "(default: the sole key; error if ambiguous)",
+    )
+    ap.add_argument(
+        "--gate-stop-after",
+        type=int,
+        default=0,
+        metavar="N",
+        help="abort after N tasks that the baseline passed have FAILED "
+        "(0 = off).  Each is retried once before it counts.",
+    )
+    ap.add_argument(
+        "--order",
+        choices=["file", "baseline-slowest", "baseline-fastest"],
+        default="file",
+        help="task order.  baseline-slowest puts the baseline's most expensive "
+        "tasks first, so a doomed candidate reveals itself in minutes.",
+    )
+    ap.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="print the selected task ids in run order and exit, so the "
+        "selection can be checked without taking the GPU",
+    )
+    return ap
+
+
+def main(argv=None):
+    ap = build_parser()
+    a = ap.parse_args(argv)
+    # Checked before anything runs: a typo here used to surface as a raw JSONDecodeError
+    # after the model list had already been fetched.
+    chat_kwargs = None
+    if a.chat_kwargs:
+        try:
+            chat_kwargs = json.loads(a.chat_kwargs)
+        except ValueError as e:
+            ap.error(f"--chat-kwargs is not valid JSON: {e}")
+        if not isinstance(chat_kwargs, dict):
+            ap.error(
+                "--chat-kwargs must be a JSON object, for example '{\"enable_thinking\": false}'"
+            )
 
     # tasks.json predates tiering, so anything without an explicit tier is core.
-    tasks = json.load(open(os.path.join(HERE, "tasks.json")))["tasks"]
+    with open(os.path.join(HERE, "tasks.json")) as f:
+        tasks = json.load(f)["tasks"]
     for t in tasks:
         t.setdefault("tier", "core")
-    hard_path = os.path.join(HERE, "tasks-hard.json")
-    if os.path.exists(hard_path):
-        tasks += json.load(open(hard_path))["tasks"]
-    if a.tier != "all":
+    for name in ("tasks-hard.json", "tasks-legal.json"):
+        path = os.path.join(HERE, name)
+        if os.path.exists(path):
+            with open(path) as f:
+                tasks += json.load(f)["tasks"]
+    every_id = {t["id"]: t.get("tier", "core") for t in tasks}
+    if a.tier == "all":
+        # "all" is the 50-task suite every baseline here was scored on.  The legal tier
+        # runs only when named, so adding it changed no existing total or comparison.
+        tasks = [t for t in tasks if t.get("tier", "core") != "legal"]
+    else:
         tasks = [t for t in tasks if t.get("tier", "core") == a.tier]
     if a.category:
         tasks = [t for t in tasks if t["category"] == a.category]
@@ -253,27 +450,30 @@ def main():
 
     # ---- failure-set gate: selection and ordering -------------------------------------
     base_rows = {}
-    gating = (a.gate != "all" or a.gate_stop_after or a.order != "file")
+    gating = a.gate != "all" or a.gate_stop_after or a.order != "file"
     if a.baseline:
-        _b = json.load(open(a.baseline))["results"]
+        _b = load_baseline(a.baseline)
         if a.gate_model:
             if a.gate_model not in _b:
-                sys.exit(f"--gate-model {a.gate_model!r} not in {a.baseline}; it holds: "
-                         + ", ".join(repr(k) for k in _b))
+                sys.exit(
+                    f"--gate-model {a.gate_model!r} not in {a.baseline}; it holds: "
+                    + ", ".join(repr(k) for k in _b)
+                )
             _bm = a.gate_model
         elif len(_b) == 1:
             _bm = next(iter(_b))
         elif gating:
             # Ambiguous, and the gate would silently pick one.  Multi-model baselines are
             # fine for the percentage comparison at the end; they are not fine here.
-            sys.exit(f"{a.baseline} holds {len(_b)} models -- name one with --gate-model: "
-                     + ", ".join(repr(k) for k in _b))
+            sys.exit(
+                f"{a.baseline} holds {len(_b)} models -- name one with --gate-model: "
+                + ", ".join(repr(k) for k in _b)
+            )
         else:
             _bm = None
         if _bm is not None:
             base_rows = {r["id"]: r for r in _b[_bm]["rows"]}
-            print(f"gate baseline: {_bm} -- "
-                  f"{_b[_bm]['score']}/{_b[_bm]['total']} ({a.baseline})")
+            print(f"gate baseline: {_bm} -- {_b[_bm]['score']}/{_b[_bm]['total']} ({a.baseline})")
     elif gating:
         sys.exit("--gate / --gate-stop-after / --order require --baseline FILE.json")
 
@@ -282,42 +482,52 @@ def main():
     # after the GPU time it exists to save.  Refuse the combination rather than accept it
     # and silently do nothing.
     if a.gate_stop_after and a.jobs > 1:
-        sys.exit("--gate-stop-after needs --jobs 1: with concurrency every task is already "
-                 "computed before the first result is read, so the abort saves nothing.")
+        sys.exit(
+            "--gate-stop-after needs --jobs 1: with concurrency every task is already "
+            "computed before the first result is read, so the abort saves nothing."
+        )
 
     if a.only:
         want = {i.strip() for i in a.only.split(",") if i.strip()}
         missing = want - {t["id"] for t in tasks}
         if missing:  # a typo would otherwise silently shrink the run -- same class of trap
-            sys.exit(f"--only: no such task id(s): {', '.join(sorted(missing))}")
+            elsewhere = sorted(f"{i} is in --tier {every_id[i]}" for i in missing if i in every_id)
+            hint = f" ({'; '.join(elsewhere)})" if elsewhere else ""
+            sys.exit(f"--only: no such task id(s): {', '.join(sorted(missing))}{hint}")
         tasks = [t for t in tasks if t["id"] in want]
 
     if a.gate != "all":
-        want_pass = (a.gate == "passed")
+        want_pass = a.gate == "passed"
         # A task absent from the baseline is neither passed nor failed there.  Dropping it
         # silently would hide genuinely new coverage, so say so instead.
         absent = [t["id"] for t in tasks if t["id"] not in base_rows]
         if absent:
-            print(f"warning: {len(absent)} task(s) not in the baseline, excluded from "
-                  f"--gate {a.gate}: {', '.join(absent)}")
+            print(
+                f"warning: {len(absent)} task(s) not in the baseline, excluded from "
+                f"--gate {a.gate}: {', '.join(absent)}"
+            )
         tasks = [t for t in tasks if base_rows.get(t["id"], {}).get("pass") == want_pass]
         if not tasks:
             sys.exit(f"no tasks matched --gate {a.gate}")
 
     if a.order != "file":
-        rev = (a.order == "baseline-slowest")
-        tasks.sort(key=lambda t: (base_rows.get(t["id"], {}).get("secs") or 0), reverse=rev)
+        rev = a.order == "baseline-slowest"
+        tasks.sort(key=lambda t: base_rows.get(t["id"], {}).get("secs") or 0, reverse=rev)
 
     if a.dry_run:
         print(f"\ndry-run -- {len(tasks)} task(s), in run order:")
         for t in tasks:
             br = base_rows.get(t["id"], {})
-            print(f"  {t['id']:<20} {t['category']:<13} baseline "
-                  f"{'pass' if br.get('pass') else 'FAIL' if br else '--':<4} "
-                  f"{(str(br.get('secs')) + 's') if br.get('secs') is not None else ''}")
+            print(
+                f"  {t['id']:<20} {t['category']:<13} baseline "
+                f"{'pass' if br.get('pass') else 'FAIL' if br else '--':<4} "
+                f"{(str(br.get('secs')) + 's') if br.get('secs') is not None else ''}"
+            )
         est = sum((base_rows.get(t["id"], {}).get("secs") or 0) for t in tasks)
-        print(f"\nbaseline wall time for this selection: {est/60:.1f} min "
-              f"(the candidate will differ with its own decode rate)")
+        print(
+            f"\nbaseline wall time for this selection: {est / 60:.1f} min "
+            f"(the candidate will differ with its own decode rate)"
+        )
         return
 
     served = discover_models(a.endpoint)
@@ -337,53 +547,71 @@ def main():
     if not models:
         sys.exit("no models to test")
 
-    system = None if a.no_system else (
-        "Default to flowing prose. Use bullet points, numbered lists, or headers only when "
-        "the content is genuinely enumerable. Follow output-format instructions exactly.")
+    system = (
+        None
+        if a.no_system
+        else (
+            "Default to flowing prose. Use bullet points, numbered lists, or headers only when "
+            "the content is genuinely enumerable. Follow output-format instructions exactly."
+        )
+    )
 
-    tier_counts = {}
+    tier_counts: dict[str, int] = {}
     for t in tasks:
         tier_counts[t.get("tier", "core")] = tier_counts.get(t.get("tier", "core"), 0) + 1
     sampling = {}
-    for flag, key in (("temperature", "temperature"), ("top_p", "top_p"), ("top_k", "top_k"),
-                      ("min_p", "min_p"), ("presence_penalty", "presence_penalty")):
+    for flag, key in (
+        ("temperature", "temperature"),
+        ("top_p", "top_p"),
+        ("top_k", "top_k"),
+        ("min_p", "min_p"),
+        ("presence_penalty", "presence_penalty"),
+    ):
         v = getattr(a, flag)
         if v is not None:
             sampling[key] = v
-    if a.chat_kwargs:
-        sampling["chat_template_kwargs"] = json.loads(a.chat_kwargs)
+    if chat_kwargs is not None:
+        sampling["chat_template_kwargs"] = chat_kwargs
 
     print(f"model-eval -- {len(tasks)} tasks x {len(models)} models, best-of-{a.best_of}")
     print(f"endpoint: {a.endpoint}")
     print(f"tiers: {tier_counts}")
-    print(f"sampling: {sampling if sampling else 'temperature=0 (default, greedy)'}")
+    print(f"sampling: {sampling or 'temperature=0 (default, greedy)'}")
     print(f"system prompt: {'none' if a.no_system else 'prose-default'}\n")
 
     results = {}
     for m in models:
-        per_cat, per_tier, rows, errs = {}, {}, [], 0
+        per_cat: dict[str, list[bool]] = {}
+        per_tier: dict[str, list[bool]] = {}
+        rows: list[dict[str, Any]] = []
+        errs = 0
         print(f"=== {m} ===")
 
-        def _run_task(t):
+        # The model is bound as a default argument rather than read from the loop
+        # variable, so the closure cannot see a later iteration's model even if it is
+        # ever called after this iteration ends.
+        def _run_task(t, model=m):
             """One task, best-of retries included.  Pure with respect to shared state so
             it is safe to run concurrently; grading is CPU-only and the result is
             returned rather than appended, so ordering is restored by the caller."""
             passed, why, best = False, "", None
             for _ in range(a.best_of):
-                r = ask(a.endpoint, m, t["prompt"], system, a.max_tokens, sampling=sampling)
+                r = ask(a.endpoint, model, t["prompt"], system, a.max_tokens, sampling=sampling)
                 best = best or r
                 if r.get("error"):
-                    why = "API: " + r["error"][:60]; continue
+                    why = "API: " + r["error"][:60]
+                    continue
                 if not r["content"]:
                     # empty content is NEVER a pass and NEVER a content failure.  The
                     # finish reason and reasoning length are recorded because they are
                     # what distinguishes a starved budget from a model that said nothing.
-                    why = f"EMPTY (finish={r['finish']}, reasoning={len(r.get('reasoning',''))}c)"
+                    why = f"EMPTY (finish={r['finish']}, reasoning={len(r.get('reasoning', ''))}c)"
                     continue
                 ok, w = GRADERS[t["grader"]](r["content"], t)
                 best = r
                 if ok:
-                    passed, why = True, w; break
+                    passed, why = True, w
+                    break
                 why = w
             return passed, why, best
 
@@ -406,33 +634,50 @@ def main():
                 passed, why, best = _run_task(t)
                 if not passed:
                     new_fails.append(t["id"])
-            if why.startswith("EMPTY") or why.startswith("API:"):
+            if why.startswith(("EMPTY", "API:")):
                 errs += 1
                 mark = "ERR "
             else:
                 mark = "PASS" if passed else "FAIL"
             per_cat.setdefault(t["category"], []).append(passed)
             per_tier.setdefault(t.get("tier", "core"), []).append(passed)
-            rows.append({"id": t["id"], "cat": t["category"], "tier": t.get("tier", "core"),
-                         "pass": passed,
-                         "why": why, "secs": round(best["secs"], 1) if best else None,
-                         "output": (best or {}).get("content", "")[:200]})
+            rows.append(
+                {
+                    "id": t["id"],
+                    "cat": t["category"],
+                    "tier": t.get("tier", "core"),
+                    "pass": passed,
+                    "why": why,
+                    "secs": round(best["secs"], 1) if best else None,
+                    "output": (best or {}).get("content", "")[:200],
+                }
+            )
             print(f"  {mark}  {t['id']:<18} {t['category']:<13} {why[:52]}")
             if a.gate_stop_after and len(new_fails) >= a.gate_stop_after:
-                aborted = (f"{len(new_fails)} confirmed new failure(s) vs baseline "
-                           f"({', '.join(new_fails)}) after {_i + 1}/{len(tasks)} tasks")
+                aborted = (
+                    f"{len(new_fails)} confirmed new failure(s) vs baseline "
+                    f"({', '.join(new_fails)}) after {_i + 1}/{len(tasks)} tasks"
+                )
                 print(f"\n  ABORT -- {aborted}")
-                print(f"     Dominance is impossible; the remaining {len(tasks) - _i - 1} "
-                      f"task(s) cannot change that.  Stopping to free the GPU.")
+                print(
+                    f"     Dominance is impossible; the remaining {len(tasks) - _i - 1} "
+                    f"task(s) cannot change that.  Stopping to free the GPU."
+                )
                 break
         score = sum(r["pass"] for r in rows)
         cats = {c: f"{sum(v)}/{len(v)}" for c, v in per_cat.items()}
         tiers = {k: f"{sum(v)}/{len(v)}" for k, v in per_tier.items()}
-        print(f"  ----> {score}/{len(rows)}  ({100*score/len(rows):.0f}%)   errors={errs}")
+        print(f"  ----> {score}/{len(rows)}  ({100 * score / len(rows):.0f}%)   errors={errs}")
         print(f"        by tier: {tiers}")
         print(f"        by cat:  {cats}\n")
-        results[m] = {"score": score, "total": len(rows), "errors": errs,
-                      "by_category": cats, "by_tier": tiers, "rows": rows}
+        results[m] = {
+            "score": score,
+            "total": len(rows),
+            "errors": errs,
+            "by_category": cats,
+            "by_tier": tiers,
+            "rows": rows,
+        }
         if base_rows:
             # The verdict this suite is actually for.  Stated even on a complete run,
             # because "49/50" and "fails nothing the incumbent passes" are different
@@ -440,12 +685,16 @@ def main():
             # against the baseline model in the same sitting before quoting it.
             results[m]["new_failures"] = new_fails
             results[m]["recovered"] = sorted(
-                r["id"] for r in rows
-                if r["pass"] and base_rows.get(r["id"], {}).get("pass") is False)
+                r["id"]
+                for r in rows
+                if r["pass"] and base_rows.get(r["id"], {}).get("pass") is False
+            )
         if aborted:
             results[m]["aborted"] = aborted
-            print(f"  PARTIAL RUN -- {score}/{len(rows)} of a {len(tasks)}-task selection; "
-                  f"this is NOT a suite score.")
+            print(
+                f"  PARTIAL RUN -- {score}/{len(rows)} of a {len(tasks)}-task selection; "
+                f"this is NOT a suite score."
+            )
 
     print("=" * 74)
     print(f"{'model':<48}{'score':>10}{'errors':>9}")
@@ -457,21 +706,37 @@ def main():
     # Record HOW the run was made.  Two baselines on this machine do not say what sampling
     # or token budget produced them, which makes "match the baseline's settings" an
     # instruction nobody can check -- the numbers have to be reasoned about instead of read.
-    json.dump({"when": time.strftime("%Y-%m-%d %H:%M:%S"), "system": system,
-               "endpoint": a.endpoint,
-               "settings": {"sampling": sampling or {"temperature": 0},
-                            "max_tokens": a.max_tokens, "jobs": a.jobs,
-                            "best_of": a.best_of, "chat_kwargs": a.chat_kwargs},
-               "selection": {"tier": a.tier, "category": a.category, "only": a.only,
-                             "gate": a.gate, "order": a.order, "baseline": a.baseline,
-                             "n_tasks": len(tasks),
-                             "complete_suite": (a.gate == "all" and not a.only
-                                                and a.tier == "all" and not a.category)},
-               "results": results}, open(out, "w"), indent=1)
+    record = {
+        "when": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "system": system,
+        "endpoint": a.endpoint,
+        "settings": {
+            "sampling": sampling or {"temperature": 0},
+            "max_tokens": a.max_tokens,
+            "jobs": a.jobs,
+            "best_of": a.best_of,
+            "chat_kwargs": a.chat_kwargs,
+        },
+        "selection": {
+            "tier": a.tier,
+            "category": a.category,
+            "only": a.only,
+            "gate": a.gate,
+            "order": a.order,
+            "baseline": a.baseline,
+            "n_tasks": len(tasks),
+            "complete_suite": (
+                a.gate == "all" and not a.only and a.tier == "all" and not a.category
+            ),
+        },
+        "results": results,
+    }
+    with open(out, "w") as f:
+        json.dump(record, f, indent=1)
     print(f"\nsaved -> {out}")
 
     if a.baseline:
-        base = json.load(open(a.baseline))["results"]
+        base = _b
         print("\n=== vs baseline ===")
         for m, r in results.items():
             if m not in base:
@@ -490,8 +755,10 @@ def main():
                 note = "  <-- REGRESSION"
             else:
                 note = ""
-            print(f"  {m:<44} {b['score']}/{b['total']} ({bp:.0f}%) -> "
-                  f"{r['score']}/{r['total']} ({rp:.0f}%)  {d:+.0f} pp{note}")
+            print(
+                f"  {m:<44} {b['score']}/{b['total']} ({bp:.0f}%) -> "
+                f"{r['score']}/{r['total']} ({rp:.0f}%)  {d:+.0f} pp{note}"
+            )
             # Per-task flips are what actually matters for a regression gate, and they stay
             # meaningful even when the suite size changed: only shared task ids are compared.
             was = {row["id"]: row["pass"] for row in b["rows"]}
