@@ -4,7 +4,7 @@
 
 ### Sixteen investigations on one 24 GB workstation, including the results that turned out to be wrong
 
-![16 notes](https://img.shields.io/badge/notes-16-0969da?style=for-the-badge) ![8 of 16 verdicts negative](https://img.shields.io/badge/negative_verdicts-8_of_16-cf222e?style=for-the-badge) ![5 tools](https://img.shields.io/badge/tools-5-0969da?style=for-the-badge) ![no LLM judges](https://img.shields.io/badge/LLM_judges-none-8250df?style=for-the-badge) ![MIT licence](https://img.shields.io/badge/licence-MIT-57606a?style=for-the-badge)
+![16 notes](https://img.shields.io/badge/notes-16-0969da?style=for-the-badge) ![8 of 16 verdicts negative](https://img.shields.io/badge/negative_verdicts-8_of_16-cf222e?style=for-the-badge) ![5 tools](https://img.shields.io/badge/tools-5-0969da?style=for-the-badge) [![CI](https://img.shields.io/github/actions/workflow/status/Danielkgr/local-llm-inference-notes/ci.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/Danielkgr/local-llm-inference-notes/actions/workflows/ci.yml) ![no LLM judges](https://img.shields.io/badge/LLM_judges-none-8250df?style=for-the-badge) ![MIT licence](https://img.shields.io/badge/licence-MIT-57606a?style=for-the-badge)
 
 </div>
 
