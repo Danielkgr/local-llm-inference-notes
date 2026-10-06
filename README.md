@@ -14,6 +14,24 @@
 
 <br>
 
+## In plain English
+
+Daniel Glynn-Roe is a lawyer in Melbourne.  This repository records his measurements of language models running on hardware he controls, including the measurements that turned out to be wrong.  The same questions decide whether a law firm can put a model to work on client matters.
+
+- **Is the model good enough?**  Vendor claims and public leaderboards were measured on someone else's tasks and machines.  Only a measurement on the firm's own work answers the question, and most of these notes show how easily that measurement goes wrong.
+- **Where does client material go?**  A model that runs locally keeps confidential and privileged client material on hardware the firm controls, instead of sending it to a cloud provider.  That privacy holds only while every tool in the chain is set up not to send data out, which also needs checking.
+- **What does control cost?**  Running models on-premises trades capability and convenience for control over data and upgrades.
+
+| | Hosted API in the cloud | Local inference on-premises |
+|---|---|---|
+| **Where client data goes** | To the provider's servers, under its contract and retention terms | It stays on hardware the firm controls |
+| **Cost profile** | Pay per use, with no hardware to buy.  Spend grows with use. | Hardware bought up front, then power and staff time.  Extra use costs little until the hardware is full. |
+| **Capability ceiling** | Includes the strongest commercial models, which are not released for local use | Whatever fits in local memory.  One 24 GB card holds mid-sized open models, not the largest. |
+| **Maintenance burden** | The provider runs, patches, and scales the service | The firm installs, measures, and patches the whole stack.  Most of these notes are that work. |
+| **Upgrade control** | The provider changes and retires models on its own timetable | Nothing changes until the firm decides.  Six engine upgrades were measured and rejected here, as [note 14](notes/14-six-upstream-bumps-rejected.md) records. |
+
+<br>
+
 ## 1. The situation
 
 One workstation runs chat, agentic coding, retrieval, and image generation, all from a single 24 GB card.  Every decision competes for the same memory.  A larger quantisation costs context.  Context costs KV cache.  A speculative decoding head costs 1.5 GiB, which on one model cut usable working context by a factor of six.
