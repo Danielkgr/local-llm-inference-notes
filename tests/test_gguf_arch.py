@@ -112,3 +112,37 @@ def test_missing_architecture_is_its_own_exit_code(tmp_path):
     done = cli(str(write(tmp_path, gguf_header(kvs))))
     assert done.returncode == 3
     assert "general.architecture absent" in done.stderr
+
+
+def test_missing_argument_prints_usage_not_a_traceback():
+    done = cli()
+    assert done.returncode == 2
+    assert "usage:" in done.stderr
+    assert "Traceback" not in done.stderr
+
+
+def test_flag_may_come_before_the_file(tmp_path):
+    done = cli("--all", str(write(tmp_path, gguf_header(MODEL_KVS))))
+    assert done.returncode == 0
+    assert done.stdout.splitlines()[:2] == ["llama", "block_count=32"]
+
+
+def test_absurd_length_is_reported_as_truncation(tmp_path):
+    # A key length of 2**62 bytes must not turn into a 4 EiB read request.
+    data = b"GGUF" + struct.pack("<IQQ", 3, 0, 1) + struct.pack("<Q", 2**62)
+    done = cli(str(write(tmp_path, data)))
+    assert done.returncode == 2
+    assert "truncated GGUF header" in done.stderr
+
+
+def test_unknown_array_element_type_is_an_error(tmp_path):
+    data = (
+        b"GGUF"
+        + struct.pack("<IQQ", 3, 0, 1)
+        + gguf_string("bad.array")
+        + struct.pack("<IIQ", T_ARRAY, 99, 1)
+    )
+    done = cli(str(write(tmp_path, data)))
+    assert done.returncode == 2
+    assert "unknown array element type 99" in done.stderr
+    assert "Traceback" not in done.stderr

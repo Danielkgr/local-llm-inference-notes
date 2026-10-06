@@ -10,6 +10,8 @@ the header bytes directly instead.
   gguf-arch.py FILE --all      -> arch plus block_count / expert_count / context_length
 """
 
+import argparse
+import os
 import struct
 import sys
 
@@ -46,8 +48,13 @@ SFMT = {
 class R:
     def __init__(self, f):
         self.f = f
+        self.size = os.fstat(f.fileno()).st_size
 
     def raw(self, n):
+        # A corrupt length field can claim exabytes.  Refuse before reading rather than
+        # asking for the allocation, so a bad file is reported as truncated.
+        if n > self.size - self.f.tell():
+            raise EOFError("truncated GGUF header")
         b = self.f.read(n)
         if len(b) != n:
             raise EOFError("truncated GGUF header")
@@ -74,6 +81,8 @@ class R:
                     self.s()
             elif et == T_ARRAY:
                 raise ValueError("nested array")
+            elif et not in FIXED:
+                raise ValueError(f"unknown array element type {et}")
             else:
                 self.raw(FIXED[et] * n)
             return f"<array[{n}]>"
@@ -99,22 +108,29 @@ def read_kv(path, wanted=None, limit=None):
     return out
 
 
-if __name__ == "__main__":
-    path = sys.argv[1]
-    show_all = "--all" in sys.argv
+def main(argv=None):
+    ap = argparse.ArgumentParser(
+        description="Print a GGUF file's general.architecture, read from the header bytes."
+    )
+    ap.add_argument("path", metavar="FILE", help="the .gguf file to read")
+    ap.add_argument(
+        "--all",
+        action="store_true",
+        help="also print block_count, expert_count, context_length, and the other shape keys",
+    )
+    a = ap.parse_args(argv)
     try:
-        kv = read_kv(path)
-    except Exception as e:
+        kv = read_kv(a.path)
+    except (OSError, EOFError, ValueError) as e:
         print(f"ERROR: {e}", file=sys.stderr)
-        sys.exit(2)
+        return 2
     arch = kv.get("general.architecture", "")
     if not arch:
         print("ERROR: general.architecture absent", file=sys.stderr)
-        sys.exit(3)
-    if not show_all:
-        print(arch)
-        sys.exit(0)
+        return 3
     print(arch)
+    if not a.all:
+        return 0
     for suffix in (
         "block_count",
         "expert_count",
@@ -126,3 +142,8 @@ if __name__ == "__main__":
         for k, v in kv.items():
             if k.endswith("." + suffix):
                 print(f"{suffix}={v}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
