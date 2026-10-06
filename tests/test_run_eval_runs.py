@@ -259,6 +259,36 @@ def test_gate_retries_then_aborts_on_confirmed_new_failures(
     assert "PARTIAL RUN" in capsys.readouterr().out
 
 
+@pytest.mark.parametrize("jobs", ["1", "2"])
+def test_each_model_is_scored_on_its_own_answers(
+    run_eval, monkeypatch, model_server, tmp_path, jobs
+):
+    # model-a answers correctly and model-b does not, so any mix-up of which model a
+    # task was sent to shows up as the wrong score.
+    model_server.reply = lambda model, task_id: completion(
+        "acknowledged" if model == "model-a" else "refused"
+    )
+    out_file = tmp_path / "two.json"
+    run(
+        run_eval,
+        monkeypatch,
+        "--endpoint", model_server.endpoint,
+        "--models", "model-a,model-b",
+        "--only", "instruct-01,extract-01",
+        "--jobs", jobs,
+        "--out", str(out_file),
+    )  # fmt: skip
+    results = json.loads(out_file.read_text())["results"]
+    assert results["model-a"]["score"] == 1
+    assert results["model-b"]["score"] == 0
+    assert sorted(model_server.requests) == [
+        ("model-a", "extract-01"),
+        ("model-a", "instruct-01"),
+        ("model-b", "extract-01"),
+        ("model-b", "instruct-01"),
+    ]
+
+
 # ----------------------------------------------------------- model names with commas
 def test_comma_list_of_served_models_is_split(run_eval, monkeypatch, model_server, tmp_path):
     out_file = tmp_path / "two.json"

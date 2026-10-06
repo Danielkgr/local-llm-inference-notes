@@ -493,13 +493,16 @@ def main():
         per_cat, per_tier, rows, errs = {}, {}, [], 0
         print(f"=== {m} ===")
 
-        def _run_task(t):
+        # The model is bound as a default argument rather than read from the loop
+        # variable, so the closure cannot see a later iteration's model even if it is
+        # ever called after this iteration ends.
+        def _run_task(t, model=m):
             """One task, best-of retries included.  Pure with respect to shared state so
             it is safe to run concurrently; grading is CPU-only and the result is
             returned rather than appended, so ordering is restored by the caller."""
             passed, why, best = False, "", None
             for _ in range(a.best_of):
-                r = ask(a.endpoint, m, t["prompt"], system, a.max_tokens, sampling=sampling)
+                r = ask(a.endpoint, model, t["prompt"], system, a.max_tokens, sampling=sampling)
                 best = best or r
                 if r.get("error"):
                     why = "API: " + r["error"][:60]
