@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Downloader that cannot truncate: append-only, verifies 206 before resuming."""
 
+import argparse
 import os
 import sys
 import time
@@ -59,11 +60,24 @@ def attempt(url, dest, total, log):
     return have, bool(total and have >= total)
 
 
-def main():
-    if len(sys.argv) < 3:
-        sys.exit("usage: resume-dl.py <url> <dest> [--expect BYTES]")
-    url, dest = sys.argv[1], sys.argv[2]
-    expect = int(sys.argv[sys.argv.index("--expect") + 1]) if "--expect" in sys.argv else None
+def main(argv=None):
+    ap = argparse.ArgumentParser(
+        description="Resume a large download without ever truncating the partial file."
+    )
+    ap.add_argument("url", metavar="URL", help="the file to download")
+    ap.add_argument(
+        "dest",
+        metavar="DEST",
+        help="local path; an existing partial file is resumed, never rewritten",
+    )
+    ap.add_argument(
+        "--expect",
+        type=int,
+        metavar="BYTES",
+        help="the final size in bytes, which skips the HEAD request that otherwise finds it",
+    )
+    a = ap.parse_args(argv)
+    url, dest, expect = a.url, a.dest, a.expect
 
     def log(m):
         print(f"{time.strftime('%H:%M:%S')} {m}", flush=True)
