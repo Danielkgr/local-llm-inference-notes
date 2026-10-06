@@ -4,13 +4,31 @@
 
 ### Sixteen investigations on one 24 GB workstation, including the results that turned out to be wrong
 
-![16 notes](https://img.shields.io/badge/notes-16-0969da?style=for-the-badge) ![8 of 16 verdicts negative](https://img.shields.io/badge/negative_verdicts-8_of_16-cf222e?style=for-the-badge) ![5 tools](https://img.shields.io/badge/tools-5-0969da?style=for-the-badge) ![no LLM judges](https://img.shields.io/badge/LLM_judges-none-8250df?style=for-the-badge) ![MIT licence](https://img.shields.io/badge/licence-MIT-57606a?style=for-the-badge)
+![16 notes](https://img.shields.io/badge/notes-16-0969da?style=for-the-badge) ![8 of 16 verdicts negative](https://img.shields.io/badge/negative_verdicts-8_of_16-cf222e?style=for-the-badge) ![5 tools](https://img.shields.io/badge/tools-5-0969da?style=for-the-badge) [![CI](https://img.shields.io/github/actions/workflow/status/Danielkgr/local-llm-inference-notes/ci.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/Danielkgr/local-llm-inference-notes/actions/workflows/ci.yml) ![no LLM judges](https://img.shields.io/badge/LLM_judges-none-8250df?style=for-the-badge) ![MIT licence](https://img.shields.io/badge/licence-MIT-57606a?style=for-the-badge)
 
 </div>
 
 <br>
 
 > Most published benchmark writing reports the changes that worked.  The expensive knowledge sits in the changes that did not, and in the discipline that separates the two.  **Half of the verdicts here are negative**, and several of them overturned a claim this repository had already published.
+
+<br>
+
+## In plain English
+
+Daniel Glynn-Roe is a lawyer in Melbourne.  This repository records measurements of language models running on a workstation under the author's own control, including the measurements that turned out to be wrong.  The same questions decide whether a law firm can put a model to work on client matters.
+
+- **Is the model good enough?**  Vendor claims and public leaderboards were measured on someone else's tasks and machines.  Only a measurement on the firm's own work answers the question, and most of these notes show how easily that measurement goes wrong.
+- **Where does client material go?**  A model that runs locally keeps confidential and privileged client material on hardware the firm controls, instead of sending it to a cloud provider.  That privacy holds only while every tool in the chain is set up not to send data out, which also needs checking.
+- **What does control cost?**  Running models on-premises trades capability and convenience for control over data and upgrades.
+
+| | Hosted API in the cloud | Local inference on-premises |
+|---|---|---|
+| **Where client data goes** | To the provider's servers, under its contract and retention terms | It stays on hardware the firm controls |
+| **Cost profile** | Pay per use, with no hardware to buy.  Spend grows with use. | Hardware bought up front, then power and staff time.  Extra use costs little until the hardware is full. |
+| **Capability ceiling** | Includes the strongest commercial models, which are not released for local use | Whatever fits in local memory.  One 24 GB card holds mid-sized open models, not the largest. |
+| **Maintenance burden** | The provider runs, patches, and scales the service | The firm installs, measures, and patches the whole stack.  Most of these notes are that work. |
+| **Upgrade control** | The provider changes and retires models on its own timetable | Nothing changes until the firm decides.  Six engine upgrades were measured and rejected here, as [note 14](notes/14-six-upstream-bumps-rejected.md) records. |
 
 <br>
 
@@ -45,14 +63,14 @@ Getting numbers was never the difficulty.  The difficulty was that the first num
 
 ## 3. The method
 
-More measurements do not fix this.  A fixed procedure does, and every rule below earns its place because breaking it produced a wrong result that was about to be published.
+More measurements do not fix this.  A fixed procedure does, and most rules below earn their place because breaking them produced a wrong result that was about to be published.
 
 | Rule | The failure that bought it | Note |
 |---|---|:--:|
 | Declare the noise band **before** the run | A band chosen after seeing the numbers is a rationalisation, not a band | |
 | Take three samples after a warm-up, and report medians **and the spread** | Decode spread jumped on two runs while prefill held steady, the signature of contention rather than an effect, so the spread check excluded both | [05](notes/05-the-control-that-killed-a-false-claim.md) |
 | Measure a control in the same sitting, even when a baseline exists | A week-old baseline turned a 3.4% null into an apparent 7 tok/s win | [05](notes/05-the-control-that-killed-a-false-claim.md) |
-| Alternate the arms rather than running them in blocks | Block-sequential A/B fabricated a regression that interleaving disproved | |
+| Alternate the arms rather than running them in blocks | Thermal and cache state drift over a session, and a block design aliases that drift onto the variable under test | |
 | Assert library provenance in both directions, from `/proc/PID/maps` | A benchmark that silently measures the same libraries twice returns a very convincing null | [01](notes/01-rocm-714-evaluation.md) |
 | Test the invariant the technique promises, not output quality | Greedy speculative decoding must produce identical output, so a single diff settles it | [03](notes/03-speculative-decoding-is-lossy.md) |
 | Never use a model to grade models | A judge makes the result depend on the very thing under test | [08](notes/08-a-benchmark-with-no-judge.md) |
@@ -61,7 +79,7 @@ More measurements do not fix this.  A fixed procedure does, and every rule below
 | Print the token budget in the output | Five different budgets produced five false capability findings | [15](notes/15-the-same-false-negative-five-times.md) |
 
 > [!TIP]
-> **[METHOD.md](METHOD.md)** carries the full set of rules, each with the failure behind it.
+> **[METHOD.md](METHOD.md)** carries the full set of rules, each with the failure or the reasoning behind it.
 
 <br>
 
@@ -71,7 +89,7 @@ A rule that a program can enforce should not depend on attention.  Five proved w
 
 | Tool | What it enforces | Notes |
 |---|---|:--:|
-| [**model-eval/**](tools/model-eval/) | Scores any OpenAI-compatible server with deterministic graders and no judge, across two difficulty tiers.  Diffs against a baseline by percentage, and gates adoption on the failure set by running only the tasks capable of deciding the question. | [08](notes/08-a-benchmark-with-no-judge.md), [09](notes/09-when-the-harness-scores-itself.md), [13](notes/13-gating-on-the-failure-set.md) |
+| [**model-eval/**](tools/model-eval/) | Scores any OpenAI-compatible server with deterministic graders and no judge, across two difficulty tiers.  Diffs against a baseline by percentage, and gates adoption on the failure set by running only the tasks capable of deciding the question.  A separate legal tier of twelve synthetic contract and policy tasks runs only with `--tier legal`, and has not yet been run. | [08](notes/08-a-benchmark-with-no-judge.md), [09](notes/09-when-the-harness-scores-itself.md), [13](notes/13-gating-on-the-failure-set.md) |
 | [**gguf-arch.py**](tools/gguf-arch.py) | Reads a model's architecture straight from the file header.  The obvious tool prints key names without their values, which turns an architecture gate into one that passes everything. | [07](notes/07-when-the-verifier-is-wrong.md) |
 | [**gpu-mutex-guard.sh**](tools/gpu-mutex-guard.sh) | Hands one GPU between an inference server and an image pipeline, waiting for the asynchronous VRAM release instead of racing it. | |
 | [**context-readout.py**](tools/context-readout.py) | Measures how close real conversations come to each model's configured limit, before VRAM buys headroom nobody reaches. | |

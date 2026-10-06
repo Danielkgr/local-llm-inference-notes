@@ -24,10 +24,22 @@ and `/slots`, but only under `/upstream/<url-encoded-model-id>/...`.  A bare
 `/props` returns 404 "no model id could be identified" and `/slots` is not routed
 at all.
 """
-import argparse, json, os, re, sqlite3, urllib.parse, urllib.request
 
-DEF_CONF = os.environ.get("LLAMA_SWAP_CONFIG",
-                          os.path.expanduser("~/.config/llama-swap/config.yaml"))
+from __future__ import annotations
+
+import argparse
+import http.client
+import json
+import os
+import re
+import sqlite3
+import urllib.parse
+import urllib.request
+from typing import Any
+
+DEF_CONF = os.environ.get(
+    "LLAMA_SWAP_CONFIG", os.path.expanduser("~/.config/llama-swap/config.yaml")
+)
 DEF_DB = os.environ.get("OPENWEBUI_DB", os.path.expanduser("~/.open-webui/webui.db"))
 DEF_SWAP = os.environ.get("LLAMA_SWAP_URL", "http://127.0.0.1:10000")
 
@@ -35,17 +47,20 @@ DEF_SWAP = os.environ.get("LLAMA_SWAP_URL", "http://127.0.0.1:10000")
 def configured_ctx(conf_path):
     """model id -> -c, plus alias -> canonical id."""
     import yaml
-    d = yaml.safe_load(open(conf_path))
+
+    with open(conf_path) as f:
+        d = yaml.safe_load(f)
     ctx, alias = {}, {}
     for mid, m in (d.get("models") or {}).items():
         # Strip comment lines first: a config's own comments often contain strings
         # like "-c 16384 -> 65536 -> 131072", and a naive search returns the
         # historical value rather than the live one.
-        cmd = "\n".join(l for l in m.get("cmd", "").splitlines()
-                        if not l.strip().startswith("#"))
+        cmd = "\n".join(
+            line for line in m.get("cmd", "").splitlines() if not line.strip().startswith("#")
+        )
         hit = re.findall(r"-c\s+(\d+)", cmd)
         ctx[mid] = int(hit[-1]) if hit else None
-        for a in (m.get("aliases") or []):
+        for a in m.get("aliases") or []:
             alias[a] = mid
     return ctx, alias
 
@@ -53,13 +68,12 @@ def configured_ctx(conf_path):
 def chat_stats(db_path, limit):
     """model id -> (last prompt tokens, max prompt tokens, n samples)."""
     con = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
-    stats = {}
-    rows = con.execute(
-        "select chat from chat order by updated_at desc limit ?", (limit,))
+    stats: dict[str, tuple[int | None, int, int]] = {}
+    rows = con.execute("select chat from chat order by updated_at desc limit ?", (limit,))
     for (blob,) in rows:
         try:
             c = json.loads(blob)
-        except Exception:
+        except (ValueError, TypeError):  # not JSON, or a NULL chat column
             continue
         hist = (c.get("history") or {}).get("messages") or {}
         for m in hist.values():
@@ -75,23 +89,27 @@ def chat_stats(db_path, limit):
     return stats
 
 
+def fetch_json(url, timeout):
+    """Parsed JSON from url, or None when the server is down or the body is not JSON."""
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as r:
+            return json.load(r)
+    except (OSError, ValueError, http.client.HTTPException):
+        return None
+
+
 def live_slots(swap_url):
     """model id -> (n_slots, n_ctx, busy) for whatever is currently loaded."""
-    out = {}
-    try:
-        run = json.load(urllib.request.urlopen(swap_url + "/running", timeout=5))
-    except Exception:
+    out: dict[str, tuple[int, Any, int]] = {}
+    run = fetch_json(swap_url + "/running", timeout=5)
+    if not isinstance(run, dict):
         return out
     for r in run.get("running", []):
         mid = r.get("model")
         if not mid or r.get("state") != "ready":
             continue
         q = urllib.parse.quote(mid, safe="")
-        try:
-            s = json.load(urllib.request.urlopen(
-                f"{swap_url}/upstream/{q}/slots", timeout=8))
-        except Exception:
-            continue
+        s = fetch_json(f"{swap_url}/upstream/{q}/slots", timeout=8)
         if isinstance(s, list) and s:
             # NOTE: some llama.cpp builds expose only id / is_processing / n_ctx on
             # /slots, with no n_past, so a live "context fill" figure is not
@@ -103,8 +121,9 @@ def live_slots(swap_url):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--chats", type=int, default=400,
-                    help="how many recent chats to scan (default 400)")
+    ap.add_argument(
+        "--chats", type=int, default=400, help="how many recent chats to scan (default 400)"
+    )
     ap.add_argument("--config", default=DEF_CONF, help=f"llama-swap config (default {DEF_CONF})")
     ap.add_argument("--db", default=DEF_DB, help=f"Open WebUI database (default {DEF_DB})")
     ap.add_argument("--endpoint", default=DEF_SWAP, help=f"llama-swap URL (default {DEF_SWAP})")
@@ -115,7 +134,7 @@ def main():
     live = live_slots(a.endpoint)
 
     # fold alias-keyed history onto the canonical model id
-    folded = {}
+    folded: dict[str, tuple[int | None, int, int]] = {}
     for mid, v in stats.items():
         key = mid if mid in ctx else alias.get(mid, mid)
         if key in folded:
@@ -136,8 +155,9 @@ def main():
                 warn = "  <== OVER 90% of -c"
             elif mx > c * 0.7:
                 warn = "  <== over 70%"
-        print(f"{mid[:44]:44} {c or '?':>8} {last or '-':>8} {mx or '-':>8} "
-              f"{pct:>6} {cnt:>6}{warn}")
+        print(
+            f"{mid[:44]:44} {c or '?':>8} {last or '-':>8} {mx or '-':>8} {pct:>6} {cnt:>6}{warn}"
+        )
 
     if live:
         print("\nlive (loaded now):")
@@ -149,9 +169,11 @@ def main():
     unused = [m for m in ctx if m not in folded]
     if unused:
         print("\nno chat history recorded for: " + ", ".join(m[:30] for m in unused))
-    print("\nNote: 'max' is the largest single prompt seen, not a running total.  A chat "
-          "grows\nuntil it hits -c, so a max well under -c means context is not the "
-          "constraint.")
+    print(
+        "\nNote: 'max' is the largest single prompt seen, not a running total.  A chat "
+        "grows\nuntil it hits -c, so a max well under -c means context is not the "
+        "constraint."
+    )
 
 
 if __name__ == "__main__":
