@@ -87,6 +87,36 @@ def test_starved_budget_is_an_error_not_a_failure(
     assert "FAIL  extract-01" not in printed
 
 
+@pytest.mark.parametrize("jobs", ["1", "2"])
+def test_error_body_is_an_api_error_and_the_run_continues(
+    run_eval, monkeypatch, model_server, tmp_path, jobs
+):
+    def reply(model: str, task_id: str):
+        if task_id == "extract-01":
+            return 200, {"error": {"code": 500, "message": "model failed to load"}}
+        if task_id == "extract-02":
+            return 200, {"choices": []}
+        return completion("acknowledged")
+
+    model_server.reply = reply
+    out_file = tmp_path / "run.json"
+    run(
+        run_eval,
+        monkeypatch,
+        "--endpoint", model_server.endpoint,
+        "--models", "model-a",
+        "--only", "extract-01,extract-02,instruct-01",
+        "--jobs", jobs,
+        "--out", str(out_file),
+    )  # fmt: skip
+    result = json.loads(out_file.read_text())["results"]["model-a"]
+    rows = {r["id"]: r for r in result["rows"]}
+    assert rows["extract-01"]["why"] == "API: error body: model failed to load"
+    assert rows["extract-02"]["why"].startswith("API: no choices in response")
+    assert rows["instruct-01"]["pass"] is True
+    assert result["errors"] == 2
+
+
 # --------------------------------------------------------------- gate selection
 def test_gate_passed_selects_only_tasks_the_baseline_passed(
     run_eval, monkeypatch, capsys, tmp_path
