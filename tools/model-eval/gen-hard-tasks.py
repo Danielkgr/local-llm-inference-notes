@@ -426,13 +426,26 @@ doc = {
     "designed around.",
     "tasks": TASKS,
 }
-with open(OUT, "w") as f:
-    json.dump(doc, f, indent=1)
-    f.write("\n")
 
-by_cat = {}
-for t in TASKS:
-    by_cat[t["category"]] = by_cat.get(t["category"], 0) + 1
-print(f"wrote {OUT}: {len(TASKS)} hard tasks {by_cat}")
-longest = max(len(t["prompt"]) for t in TASKS)
-print(f"longest prompt: {longest} chars (~{longest // 4} tokens)")
+
+def render(document):
+    """The exact text of tasks-hard.json, so a test can compare it without writing."""
+    return json.dumps(document, indent=1) + "\n"
+
+
+def main():
+    with open(OUT, "w") as f:
+        f.write(render(doc))
+
+    by_cat = {}
+    for t in TASKS:
+        by_cat[t["category"]] = by_cat.get(t["category"], 0) + 1
+    print(f"wrote {OUT}: {len(TASKS)} hard tasks {by_cat}")
+    longest = max(len(t["prompt"]) for t in TASKS)
+    print(f"longest prompt: {longest} chars (~{longest // 4} tokens)")
+
+
+# Building TASKS above runs every uniqueness assert, so importing this module checks
+# the tier without touching tasks-hard.json.  Only running it as a script writes.
+if __name__ == "__main__":
+    main()
