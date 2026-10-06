@@ -45,14 +45,14 @@ Getting numbers was never the difficulty.  The difficulty was that the first num
 
 ## 3. The method
 
-More measurements do not fix this.  A fixed procedure does, and every rule below earns its place because breaking it produced a wrong result that was about to be published.
+More measurements do not fix this.  A fixed procedure does, and most rules below earn their place because breaking them produced a wrong result that was about to be published.
 
 | Rule | The failure that bought it | Note |
 |---|---|:--:|
 | Declare the noise band **before** the run | A band chosen after seeing the numbers is a rationalisation, not a band | |
 | Take three samples after a warm-up, and report medians **and the spread** | Decode spread jumped on two runs while prefill held steady, the signature of contention rather than an effect, so the spread check excluded both | [05](notes/05-the-control-that-killed-a-false-claim.md) |
 | Measure a control in the same sitting, even when a baseline exists | A week-old baseline turned a 3.4% null into an apparent 7 tok/s win | [05](notes/05-the-control-that-killed-a-false-claim.md) |
-| Alternate the arms rather than running them in blocks | Block-sequential A/B fabricated a regression that interleaving disproved | |
+| Alternate the arms rather than running them in blocks | Thermal and cache state drift over a session, and a block design aliases that drift onto the variable under test | |
 | Assert library provenance in both directions, from `/proc/PID/maps` | A benchmark that silently measures the same libraries twice returns a very convincing null | [01](notes/01-rocm-714-evaluation.md) |
 | Test the invariant the technique promises, not output quality | Greedy speculative decoding must produce identical output, so a single diff settles it | [03](notes/03-speculative-decoding-is-lossy.md) |
 | Never use a model to grade models | A judge makes the result depend on the very thing under test | [08](notes/08-a-benchmark-with-no-judge.md) |
@@ -61,7 +61,7 @@ More measurements do not fix this.  A fixed procedure does, and every rule below
 | Print the token budget in the output | Five different budgets produced five false capability findings | [15](notes/15-the-same-false-negative-five-times.md) |
 
 > [!TIP]
-> **[METHOD.md](METHOD.md)** carries the full set of rules, each with the failure behind it.
+> **[METHOD.md](METHOD.md)** carries the full set of rules, each with the failure or the reasoning behind it.
 
 <br>
 
