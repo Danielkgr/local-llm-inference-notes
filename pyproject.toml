@@ -10,6 +10,9 @@
 # The tools README promises Python 3.8 or newer, so lint and format for it.
 target-version = "py38"
 line-length = 100
+# Python only.  Ruff also formats code blocks inside Markdown by default, and the
+# notes are prose whose snippets quote what was actually run.
+include = ["*.py", "*.pyi", "**/pyproject.toml"]
 
 [tool.ruff.lint]
 select = [
