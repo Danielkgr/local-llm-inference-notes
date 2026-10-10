@@ -1,8 +1,11 @@
 *.gguf
 *.log
 __pycache__/
-.venv/
-venv/
+.venv*/
+venv*/
+env/
+ENV/
+.conda/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
