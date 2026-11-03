@@ -70,7 +70,7 @@ produced it, because two baselines on this machine do not, and "match the
 baseline's settings" was therefore not a checkable instruction.  The numbers had
 to be argued about rather than read.
 
-## Why it kept coming back
+## Why the defect recurred
 
 Every one of these was fixed the day it was found.  The fixes were real.  They
 were also local: a constant in one script, a flag added to one call site, a
