@@ -58,6 +58,7 @@ Design decisions that matter:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import http.client
 import json
 import os
@@ -262,6 +263,13 @@ def describe_bad_body(d):
     return "no choices in response: " + json.dumps(d)[:120]
 
 
+def incomplete_row(row):
+    """Recognise current and historical result rows that have no graded answer."""
+    return row.get("status") == "INCOMPLETE" or str(row.get("why", "")).startswith(
+        ("EMPTY", "API:", "CAPPED")
+    )
+
+
 def load_baseline(path):
     """The results of an earlier run, or a clear exit saying why the file cannot be used."""
     try:
@@ -286,6 +294,16 @@ def load_baseline(path):
                 f"--baseline: {path} results for {model!r} need score, total, "
                 "and rows with an id and a pass"
             )
+        if (
+            type(r["total"]) is not int
+            or type(r["score"]) is not int
+            or r["total"] <= 0
+            or r["total"] != len(rows)
+            or not all(isinstance(row["id"], str) and type(row["pass"]) is bool for row in rows)
+            or len({row["id"] for row in rows}) != len(rows)
+            or r["score"] != sum(row["pass"] for row in rows)
+        ):
+            sys.exit(f"--baseline: {path} results for {model!r} have inconsistent counts or rows")
     return results
 
 
@@ -413,6 +431,11 @@ def build_parser():
 def main(argv=None):
     ap = build_parser()
     a = ap.parse_args(argv)
+    for flag in ("best_of", "jobs", "max_tokens"):
+        if getattr(a, flag) <= 0:
+            ap.error(f"--{flag.replace('_', '-')} must be positive")
+    if a.gate_stop_after < 0:
+        ap.error("--gate-stop-after must be nonnegative")
     # Checked before anything runs: a typo here used to surface as a raw JSONDecodeError
     # after the model list had already been fetched.
     chat_kwargs = None
@@ -506,7 +529,16 @@ def main(argv=None):
                 f"warning: {len(absent)} task(s) not in the baseline, excluded from "
                 f"--gate {a.gate}: {', '.join(absent)}"
             )
-        tasks = [t for t in tasks if base_rows.get(t["id"], {}).get("pass") == want_pass]
+        ungraded = [t["id"] for t in tasks if incomplete_row(base_rows.get(t["id"], {}))]
+        if ungraded:
+            print(
+                f"warning: incomplete baseline rows excluded from the gate: {', '.join(ungraded)}"
+            )
+        tasks = [
+            t
+            for t in tasks
+            if base_rows.get(t["id"], {}).get("pass") == want_pass and t["id"] not in ungraded
+        ]
         if not tasks:
             sys.exit(f"no tasks matched --gate {a.gate}")
 
@@ -546,6 +578,9 @@ def main(argv=None):
         models = served
     if not models:
         sys.exit("no models to test")
+    unknown = [m for m in models if m not in served]
+    if unknown:
+        sys.exit("model(s) not served: " + ", ".join(unknown))
 
     system = (
         None
@@ -559,7 +594,7 @@ def main(argv=None):
     tier_counts: dict[str, int] = {}
     for t in tasks:
         tier_counts[t.get("tier", "core")] = tier_counts.get(t.get("tier", "core"), 0) + 1
-    sampling = {}
+    sampling = {"temperature": 0}
     for flag, key in (
         ("temperature", "temperature"),
         ("top_p", "top_p"),
@@ -577,6 +612,7 @@ def main(argv=None):
     print(f"endpoint: {a.endpoint}")
     print(f"tiers: {tier_counts}")
     print(f"sampling: {sampling or 'temperature=0 (default, greedy)'}")
+    print(f"max_tokens: {a.max_tokens}")
     print(f"system prompt: {'none' if a.no_system else 'prose-default'}\n")
 
     results = {}
@@ -597,7 +633,7 @@ def main(argv=None):
             passed, why, best = False, "", None
             for _ in range(a.best_of):
                 r = ask(a.endpoint, model, t["prompt"], system, a.max_tokens, sampling=sampling)
-                best = best or r
+                best = r
                 if r.get("error"):
                     why = "API: " + r["error"][:60]
                     continue
@@ -606,6 +642,9 @@ def main(argv=None):
                     # finish reason and reasoning length are recorded because they are
                     # what distinguishes a starved budget from a model that said nothing.
                     why = f"EMPTY (finish={r['finish']}, reasoning={len(r.get('reasoning', ''))}c)"
+                    continue
+                if r.get("finish") == "length":
+                    why = "CAPPED (finish=length)"
                     continue
                 ok, w = GRADERS[t["grader"]](r["content"], t)
                 best = r
@@ -632,9 +671,10 @@ def main(argv=None):
             if base_rows.get(t["id"], {}).get("pass") and not passed:
                 print(f"  ....  {t['id']:<18} new failure ({why[:40]}) -- confirming")
                 passed, why, best = _run_task(t)
-                if not passed:
+                if not passed and not why.startswith(("EMPTY", "API:", "CAPPED")):
                     new_fails.append(t["id"])
-            if why.startswith(("EMPTY", "API:")):
+            incomplete = why.startswith(("EMPTY", "API:", "CAPPED"))
+            if incomplete:
                 errs += 1
                 mark = "ERR "
             else:
@@ -648,7 +688,10 @@ def main(argv=None):
                     "tier": t.get("tier", "core"),
                     "pass": passed,
                     "why": why,
-                    "secs": round(best["secs"], 1) if best else None,
+                    "status": "INCOMPLETE" if incomplete else "PASS" if passed else "FAIL",
+                    "finish_reason": (best or {}).get("finish"),
+                    "reasoning_chars": len((best or {}).get("reasoning", "")),
+                    "secs": best["secs"] if best else None,
                     "output": (best or {}).get("content", "")[:200],
                 }
             )
@@ -671,6 +714,7 @@ def main(argv=None):
         print(f"        by tier: {tiers}")
         print(f"        by cat:  {cats}\n")
         results[m] = {
+            "status": "INCOMPLETE" if errs or aborted else "COMPLETED",
             "score": score,
             "total": len(rows),
             "errors": errs,
@@ -687,7 +731,9 @@ def main(argv=None):
             results[m]["recovered"] = sorted(
                 r["id"]
                 for r in rows
-                if r["pass"] and base_rows.get(r["id"], {}).get("pass") is False
+                if r["pass"]
+                and base_rows.get(r["id"], {}).get("pass") is False
+                and not incomplete_row(base_rows[r["id"]])
             )
         if aborted:
             results[m]["aborted"] = aborted
@@ -724,9 +770,18 @@ def main(argv=None):
             "gate": a.gate,
             "order": a.order,
             "baseline": a.baseline,
+            "gate_stop_after": a.gate_stop_after,
+            "task_ids": [t["id"] for t in tasks],
+            "tasks_sha256": hashlib.sha256(
+                json.dumps(tasks, sort_keys=True, ensure_ascii=True).encode()
+            ).hexdigest(),
             "n_tasks": len(tasks),
             "complete_suite": (
-                a.gate == "all" and not a.only and a.tier == "all" and not a.category
+                a.gate == "all"
+                and not a.only
+                and a.tier == "all"
+                and not a.category
+                and all(not r.get("aborted") for r in results.values())
             ),
         },
         "results": results,
@@ -749,8 +804,16 @@ def main(argv=None):
             bp = 100 * b["score"] / b["total"]
             rp = 100 * r["score"] / r["total"]
             d = rp - bp
-            if b["total"] != r["total"]:
-                note = f"  [SUITE CHANGED {b['total']}->{r['total']} tasks; compare pp, not score]"
+            was = {row["id"]: row for row in b["rows"]}
+            now = {row["id"]: row for row in r["rows"]}
+            comparable = was.keys() & now.keys()
+            incomplete = sorted(
+                i for i in comparable if incomplete_row(was[i]) or incomplete_row(now[i])
+            )
+            if was.keys() != now.keys():
+                note = "  [NOT_COMPARABLE: task selection changed]"
+            elif incomplete:
+                note = "  [INCOMPLETE: ungraded rows]"
             elif d < 0:
                 note = "  <-- REGRESSION"
             else:
@@ -761,17 +824,18 @@ def main(argv=None):
             )
             # Per-task flips are what actually matters for a regression gate, and they stay
             # meaningful even when the suite size changed: only shared task ids are compared.
-            was = {row["id"]: row["pass"] for row in b["rows"]}
-            now = {row["id"]: row["pass"] for row in r["rows"]}
-            broke = sorted(i for i in was.keys() & now.keys() if was[i] and not now[i])
-            fixed = sorted(i for i in was.keys() & now.keys() if now[i] and not was[i])
+            comparable -= set(incomplete)
+            broke = sorted(i for i in comparable if was[i]["pass"] and not now[i]["pass"])
+            fixed = sorted(i for i in comparable if now[i]["pass"] and not was[i]["pass"])
             added = sorted(now.keys() - was.keys())
             if broke:
                 print(f"      pass -> FAIL: {', '.join(broke)}")
             if fixed:
                 print(f"      fail -> pass: {', '.join(fixed)}")
+            if incomplete:
+                print(f"      incomplete comparison: {', '.join(incomplete)}")
             if added:
-                new_pass = sum(now[i] for i in added)
+                new_pass = sum(now[i]["pass"] for i in added)
                 print(f"      new tasks not in baseline: {len(added)} ({new_pass} passed)")
 
 

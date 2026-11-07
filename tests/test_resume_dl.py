@@ -84,6 +84,25 @@ def test_expect_may_come_first(file_server, tmp_path):
     assert dest.read_bytes() == file_server.content
 
 
+@pytest.mark.parametrize("header", ["bytes 0-99/100", "bytes 1000-2000/99999", "invalid"])
+def test_bad_content_range_preserves_existing_bytes(file_server, tmp_path, header):
+    dest = tmp_path / "model.gguf"
+    partial = file_server.content[:1000]
+    dest.write_bytes(partial)
+    file_server.content_range = header
+    done = cli(file_server.url, str(dest))
+    assert done.returncode == 1
+    assert "Content-Range" in done.stderr
+    assert dest.read_bytes() == partial
+
+
+@pytest.mark.parametrize("size", ["0", "-1"])
+def test_nonpositive_size_is_rejected_without_network(tmp_path, size):
+    done = cli("http://127.0.0.1:9/x", str(tmp_path / "file"), "--expect", size)
+    assert done.returncode == 2
+    assert "positive" in done.stderr
+
+
 def test_404_fails_fast_instead_of_retrying(file_server, tmp_path):
     file_server.get_statuses = [404] * 5
     dest = tmp_path / "model.gguf"

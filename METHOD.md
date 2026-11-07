@@ -1,166 +1,147 @@
 # Measurement rules
 
-The rules this repository holds itself to.  Most of them are here because
-breaking them produced a wrong result that was about to be published, and most of
-the notes are the record of that happening.
+Current procedure, reviewed 7 November 2026.  Notes 01 to 16 preserve earlier
+experiments and their original protocols.  Their fixed noise bands, compulsory
+same-session controls, and early-exit adoption gate are historical.  The
+current procedure below supersedes those instructions for Box and Strix.
 
-## Running a measurement
+## Authority and scope
 
-**Declare the noise band before the run, not after.**  Prefill plus or minus 5 per
-cent, decode plus or minus 10 per cent.  A band chosen after seeing the numbers is
-not a band, it is a rationalisation.
+Read the host's `/data/maintenance/RETEST-RULES.md` and
+`/data/maintenance/TEST-ACCEPTANCE-POLICY.json` before planning a test.
+Sections 8, 9, and 15 define the complete compact suite, global hold, and
+acceptance policy.  Later sections record individual grants.  The two hosts
+have different grant histories, so the files are not interchangeable.
 
-**Three samples plus a warm-up, medians reported, not means.**  One run is not a
-trend.  A mean hides the outlier that tells you the run was contaminated.
+The global model-test hold remains installed on both hosts.  Reviewing this
+repository, preparing code, or passing CPU tests does not authorise inference,
+benchmarking, conversion, a maintenance window, or promotion.  A dated
+exception covers only its named host, job, controller, and time.  Ordinary
+serving continues.
 
-**Record the spread, even when nobody asks for it.**  The median says what
-happened; the spread says whether to believe it.  Two configurations in
-[note 05](notes/05-the-control-that-killed-a-false-claim.md) were caught and
-excluded because their decode spread jumped to about 15 while prefill stayed
-steady, which is the signature of external contention rather than a real effect.
+Before authorised model work, run `python3 /data/apps/model-test-hold.py check`
+and use `/data/apps/model-test-run.sh -- ...` with the host's coordination
+wrapper.  Box windows also use `/data/apps/ab-maintenance-lock.sh run --force
+-- ...`.  Here `--force` removes idle waiting.  It cannot bypass the hold.  The
+generic GPU helper in this repository does not replace either wrapper.
 
-**Measure a control in the same sitting, even when a baseline is already
-recorded.**  A performance number is bound to the method and the machine state
-that produced it.  It is not a property of the configuration and it does not
-keep.  Baselines older than the current sitting are documentation, not
-measurements.  This rule exists because a week-old baseline turned a 3.4 per cent
-null into an apparent 7 tok/s win.
+Documents trees and their associated session content are excluded from host
+reviews.  Keep discovery inside allowed directories, do not follow links into
+excluded trees, and do not inspect session stores without first establishing an
+allowed project association from minimal metadata.
 
-**Alternate the arms rather than running them in blocks.**  Thermal and cache
-state drift over a session, and a block design aliases that drift onto the
-variable under test.
+## Design the comparison before loading anything
 
-**Give every prompt a per-request nonce.**  Prompt-cache hits on repeated
-identical prompts produce nonsense prefill figures that look like enormous wins.
+**Freeze the question and workload.**  Record model and runtime identity,
+precision, context per slot, concurrency, input and output budgets, sampling,
+template, cache state, and hardware placement.  A model alias is not weight
+identity.  A service description is not its effective command line.
 
-**Measure the noise floor of a graded suite before comparing two configurations
-on it.**  Repeat one configuration three times and see what moves.  Four sampling
-profiles run three times each produced three different rankings from the same
-twelve runs, and a three-point gap in the first sitting was gone by the third.
-See [note 12](notes/12-four-sampling-profiles-three-rankings.md).
+**Reuse applicable evidence.**  A different date or operator does not require
+another incumbent load.  Bind the reference to its source and hash, and check
+the workload and configuration match.  Record meaningful differences.  A
+changed driver, topology, precision, template, or measurement definition can
+invalidate a comparison.  Explain that mismatch before replacing the reference.
+The stale-baseline error in [note
+05](notes/05-the-control-that-killed-a-false-claim.md) still matters, but an
+automatic reference rerun is no longer the remedy.
 
-**Print the token budget in the output, and treat any capped run as measuring
-the cap until shown otherwise.**  A reasoning model that runs out of budget
-returns empty content with a finish reason of `length`, which reads as a wrong
-answer.  Five different budgets produced five false capability findings here, and
-the last of them was a budget already raised to be generous.  See
-[note 15](notes/15-the-same-false-negative-five-times.md).
+**Screen changes before building.**  A newer runtime that does not touch the
+code behind a known failure does not earn another outage.  Prepare builds,
+downloads, fixtures, manifests, rollback, and the downtime estimate outside the
+maintenance lock.  Routine suites belong overnight unless separately
+authorised.
 
-## Trusting a measurement
+## Acceptance has units
 
-**Assert provenance in both directions.**  Before believing an A/B, read
-`/proc/PID/maps` on both sides and confirm the loaded library trees are disjoint.
-A benchmark that silently measures the same libraries twice returns a very
-convincing null.
+The current policy is `metric-aware-20261028-v1`.  Use the shared CPU evaluator
+at `/data/apps/lane-gate/acceptance.py` for host performance comparisons, and
+record the policy SHA256 with the measurements.  The reviewed policy hash is in
+the [evidence snapshot](evidence/2026-11-07-review.json).
 
-**Never attribute a delta measured across two different methods.**  Comparing a
-number from one harness against a number from another measures the harnesses.
+| Metric | Accepted degradation from a matched reference |
+|---|---|
+| Fresh or returning prompt-processing duration, seconds | At most `max(0.05 * reference, 0.5)` seconds slower |
+| Decode or prefill rate, tokens per second | At least `0.95 * reference` |
+| TTFT, tool round trip, retrieval, audio, or image latency | Its own declared metric rule, generally 5%, with no universal 0.5-second allowance |
+| Loading time | Report cold or warm state.  Observe unless an explicit contract makes it a gate. |
+| Correctness, safety coverage, retrieval facts, precision, identity, or recovery | The exact declared requirement.  Timing allowances do not apply. |
 
-**Check the apparatus could have produced a different answer.**  A result of
-exactly zero, or exactly the maximum, usually indicts the harness rather than the
-subject.  Identical failure text across unrelated categories means one shared
-cause upstream of the thing being tested.  See
-[note 09](notes/09-when-the-harness-scores-itself.md).
+These are engineering acceptance tolerances.  They are not measured noise
+distributions or significance tests.  Optional absolute jitter must come from
+matched reference evidence frozen before the candidate, with source hashes.
+Candidate variability cannot widen its own acceptance band.
 
-**Watch the spread of the whole field, not just the winner.**  When every
-candidate lands within a few points of the maximum, the benchmark has stopped
-measuring whatever its pass rate says.
+Preserve unrounded values and the declared aggregation.  Four returning turns
+may use an upper median.  They are different requests, not four independent
+repetitions of one request.  Do not gate equivalent prefill time and rate
+twice.
 
-**A result that favours you needs the same control as one that does not.**  A
-candidate that recovers a task the incumbent failed is making a claim about a row
-in a stored baseline file.  Re-run that task against the incumbent in the same
-sitting.  The first use of the adoption gate produced a recovery that was a token
-budget running out a week earlier.  See
-[note 13](notes/13-gating-on-the-failure-set.md).
+Missing, zero, or nonfinite measurements are incomplete.  Known workload or
+configuration mismatches are not comparable.  Neither establishes a regression,
+and neither can qualify a candidate.  Deadlines bound execution.  Exceeding one
+does not prove bad model quality or that a model cannot fit.
 
-**Check that a guard could fire before trusting it.**  Two on this machine could
-not: a compaction threshold set beyond the context the server would accept, and
-an early-abort that was requested alongside a concurrency setting which computed
-every task before the first result was read.  A guard that cannot fire is worse
-than no guard, because it is also a claim that you are guarded.  See
-[note 11](notes/11-a-guard-that-trusts-its-own-number.md).
+## Complete the suite with one candidate load
 
-**Derive a limit from the thing it protects; never restate it in a client.**
-Where a client insists on holding its own copy, assert equality against the
-server at startup and refuse to run on mismatch.  A declared number that nobody
-checks is a comment with consequences.
+Keep the candidate loaded for control checks, coding and performance telemetry,
+streamed tools, all 15 required safety repetitions, and relevant retrieval.
+Collect speed during useful work.  Do not add a baseline arm, automatic draft
+tuning, repeated warm-up, or a separate speed-only stage by default.
 
-## Correctness
+Continue after speed, coding, and safety failures, and report every planned
+check.  Those failures still prevent adoption.  User STOP or a fatal engine or
+resource failure requires safe cleanup and explicit incomplete results for
+unfinished checks.  Do not score requests sent to a dead server as model
+answers.
 
-**Correctness gates outrank speed.**  A faster configuration that changes the
-output is not a faster configuration.
+Near-limit retrieval uses `/data/apps/lane-gate/needle-batch.py`.  One frozen
+prompt contains separately keyed facts at 10%, 50%, and 90%.  Check all three
+in one final answer.  Record protocol, prompt hash, actual token count, and one
+request.  This is one joint test, not three independent trials.  A missing or
+budget-exhausted final answer cannot pass.  Run it when the change affects the
+attention, context, or KV path, as the host rules require.
 
-**Test the invariant the technique promises, not the output quality.**  Where a
-method guarantees something structural, checking that guarantee is cheap, binary,
-and not arguable, while quality evaluation is expensive, noisy, and easy to argue
-with.  Greedy speculative decoding must be output-identical, so a single diff
-settles it.  See [note 03](notes/03-speculative-decoding-is-lossy.md).
+## Trust the apparatus
 
-**Do not use a model to grade models.**  A judge makes the result depend on the
-thing being measured.  Deterministic graders, and tasks written so short answers
-are the only correct answers.
+Inspect loaded libraries when backend identity matters.  Check both sides of a
+comparison rather than trusting launcher names.  Greedy text identity is useful
+only under a controlled execution path.  Different kernels, batching, or
+precision can change rounding and therefore tokens.  Greedy decoding removes
+sampling randomness, not every possible cause of failure.
 
-**Distinguish "wrong answer" from "no answer".**  An empty response is not a
-failure of capability, and an empty string trivially satisfies any
-does-not-contain check.  Count it separately or it will silently pass.  Record
-*why* it was empty next to the row: the finish reason, and how much reasoning
-the model produced.  A starved budget and a model that said nothing are
-different findings that print as the same blank cell.
+Use deterministic graders for the tasks they can actually decide.  A perfect
+score may show a ceiling.  An exact zero across unrelated tasks may show a
+shared transport failure.  Preserve task-level failures and errors so those
+possibilities remain distinguishable.
 
-**Compare failure sets, not totals, when the decision is adoption.**  A candidate
-earns adoption by failing nothing the incumbent passes.  Only the tasks the
-incumbent passed can disqualify it, which is also the cheapest way to run the
-comparison.  See [note 13](notes/13-gating-on-the-failure-set.md).
+Record capped output, empty content, finish reason, and reasoning length.
+Inspect the apparatus before interpreting either as a capability result.  Keep
+the token budget and resolved sampling in the result itself.  Preserve failed
+attempts and waivers rather than overwriting them with a later pass.
 
-## Reporting
+The portable `model-eval` tool reports a limited deterministic suite.  Its
+optional historical early-exit gate remains available for other environments.
+It is not the complete host qualification runner and must not be used to
+short-circuit the Box or Strix procedure.  A suite score is not adoption
+authority.
 
-**Report negative and null results as plainly as positive ones.**  A measured null
-is not an absence of information.  It is a forecast about the next decision, and
-it can be checked later.
+## Adoption and recovery are separate claims
 
-**Compare percentages, never raw scores, when the denominator changed.**  23 of 23
-to 37 of 50 prints as "+14" while accuracy has fallen from 100 per cent to 74 per
-cent.
+Keep measurement completion, qualification, a human waiver, deployment, and
+restoration as separate states.  A waiver names the exact failed gate and
+scope.  It does not change the raw result, relax every future run, or turn the
+remaining failures into passes.
 
-**Name exactly which copy was verified.**  "The backup was checked" is not a
-claim, it is a mood.  A verification claim that does not name the artefact it
-checked has a way of turning out to describe a different one.
+Verify the actual client and routed service after a change, alongside binary
+identity, kernel and engine logs, owned-worker cleanup, and resident/admission
+restoration.  Keep rollback material and verify backup selection.  A passing
+backup plan does not prove a fresh archive exists or has been restored.
 
-**Say when a number was measured under contaminated conditions, and exclude it.**
-Do not quietly drop it.  The excluded rows and the reason belong in the note.
+Use the owned STOP mechanism.  Never kill a lock supervisor or strand admission
+closed.  A previously authorised promotion does not authorise this review to
+change serving configuration.
 
-**A verifier that has never been seen to fail has not been tested.**  Exercise
-every branch of a check against a known-bad input before trusting it.  A
-self-test has to exercise the script itself, not a copy of its logic.
-
-**Label a partial run inside its own output.**  Any run that was filtered, gated,
-or aborted must carry the selection that produced it, so a twelve-task gate can
-never be read back later as a suite score.
-
-## Changing the machine
-
-**Anything underneath the engine is part of the apparatus.**  A graphics driver,
-a kernel, an allocator: upgrading one invalidates every baseline you hold.  Take
-fresh baselines first, or the next comparison becomes an argument about which
-change caused what.
-
-**A rejection is dated and conditioned.**  A candidate rejected under the old
-driver has to be re-checked after the driver changes, because the rejection was
-a fact about the pair, not about the candidate.
-
-**Derive what is in use from the running configuration, not from a search for
-its name.**  A grep answers "where does this string appear", which is a different
-question from "what gets executed".  A build tree that appeared only in comments
-was about to be deleted; a guard clause in the serving configuration executes it
-for one model that nothing else can load.
-
-**For a risky change you cannot supervise, make the proven configuration the
-default and give the new one a single one-shot attempt with an automatic test
-afterwards.**  Then a failure costs a reboot rather than a trip to the machine.
-See [note 14](notes/14-six-upstream-bumps-rejected.md).
-
-**A local patch needs a recorded base commit, a check that runs after every
-pull, and a condition that ends it.**  Without the third it is permanent by
-default.  When upstream absorbs the fix, invert the check rather than deleting
-it: the machine that found the bug is the one that will notice its return.  See
-[note 10](notes/10-carrying-a-patch-against-upstream.md).
+See [note 17](notes/17-complete-tests-without-duplicate-work.md) for the
+procedure change, [CURRENT.md](CURRENT.md) for the observed setup, and the
+[review](reviews/2026-11-07.md) for evidence boundaries and remaining gaps.

@@ -79,12 +79,123 @@ def test_starved_budget_is_an_error_not_a_failure(
     assert result["errors"] == 1
     assert rows["extract-01"]["pass"] is False
     assert rows["extract-01"]["why"] == "EMPTY (finish=length, reasoning=1234c)"
+    assert rows["extract-01"]["finish_reason"] == "length"
+    assert rows["extract-01"]["reasoning_chars"] == 1234
+    assert rows["extract-01"]["status"] == "INCOMPLETE"
     assert rows["extract-02"]["pass"] is True
     # The budget that produced the run is recorded with it.
     assert doc["settings"]["max_tokens"] == 16000
     printed = capsys.readouterr().out
     assert "ERR   extract-01" in printed
     assert "FAIL  extract-01" not in printed
+
+
+def test_truncated_nonempty_answer_is_incomplete(run_eval, model_server, tmp_path):
+    model_server.reply = lambda model, task: completion("acknowledged", finish="length")
+    out = tmp_path / "run.json"
+    run_eval.main(
+        [
+            "--endpoint",
+            model_server.endpoint,
+            "--models",
+            "model-a",
+            "--only",
+            "instruct-01",
+            "--top-p",
+            "0.9",
+            "--out",
+            str(out),
+        ]
+    )
+    doc = json.loads(out.read_text())
+    row = doc["results"]["model-a"]["rows"][0]
+    assert row["pass"] is False
+    assert row["status"] == "INCOMPLETE"
+    assert row["why"].startswith("CAPPED")
+    assert doc["settings"]["sampling"]["temperature"] == 0
+
+
+@pytest.mark.parametrize("flag", ["--best-of", "--jobs", "--max-tokens"])
+def test_invalid_budgets_fail_before_network(run_eval, flag):
+    with pytest.raises(SystemExit):
+        run_eval.main([flag, "0", "--endpoint", "http://127.0.0.1:9/v1/chat/completions"])
+
+
+@pytest.mark.parametrize(
+    "change", [{"total": 0}, {"score": 9}, {"rows": [{"id": "extract-01", "pass": "false"}]}]
+)
+def test_inconsistent_baseline_is_rejected(run_eval, tmp_path, change):
+    path = tmp_path / "base.json"
+    write_baseline(path, BASELINE_ROWS[:1])
+    doc = json.loads(path.read_text())
+    doc["results"]["incumbent"].update(change)
+    path.write_text(json.dumps(doc))
+    with pytest.raises(SystemExit, match="inconsistent"):
+        run_eval.load_baseline(str(path))
+
+
+def test_unknown_model_fails_before_completions(run_eval, model_server):
+    with pytest.raises(SystemExit, match="not served"):
+        run_eval.main(["--endpoint", model_server.endpoint, "--models", "typo"])
+    assert not model_server.requests
+
+
+def test_baseline_error_is_not_reported_as_a_recovered_task(
+    run_eval, model_server, tmp_path, capsys
+):
+    base = write_baseline(
+        tmp_path / "base.json",
+        [{"id": "instruct-01", "pass": False, "why": "EMPTY (finish=length, reasoning=50c)"}],
+        model="model-a",
+    )
+    model_server.reply = lambda model, task: completion("acknowledged")
+    out = tmp_path / "run.json"
+    run_eval.main(
+        [
+            "--endpoint",
+            model_server.endpoint,
+            "--models",
+            "model-a",
+            "--baseline",
+            base,
+            "--only",
+            "instruct-01",
+            "--out",
+            str(out),
+        ]
+    )
+    result = json.loads(out.read_text())["results"]["model-a"]
+    assert result["recovered"] == []
+    printed = capsys.readouterr().out
+    assert "incomplete comparison: instruct-01" in printed
+    assert "fail -> pass" not in printed
+
+
+def test_infrastructure_errors_do_not_trigger_quality_abort(run_eval, model_server, tmp_path):
+    base = write_baseline(tmp_path / "base.json", BASELINE_ROWS[:3])
+    model_server.reply = lambda model, task: (503, {"error": "unavailable"})
+    out = tmp_path / "run.json"
+    run_eval.main(
+        [
+            "--endpoint",
+            model_server.endpoint,
+            "--models",
+            "model-a",
+            "--only",
+            "extract-01,extract-02,extract-04",
+            "--baseline",
+            base,
+            "--gate-stop-after",
+            "1",
+            "--out",
+            str(out),
+        ]
+    )
+    result = json.loads(out.read_text())["results"]["model-a"]
+    assert result["total"] == 3
+    assert result["errors"] == 3
+    assert result["new_failures"] == []
+    assert result["status"] == "INCOMPLETE"
 
 
 @pytest.mark.parametrize("jobs", ["1", "2"])

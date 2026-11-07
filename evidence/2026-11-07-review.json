@@ -1,0 +1,740 @@
+{
+  "schema_version": 1,
+  "observed_at_utc": "2026-11-07T02:31:54.712700+00:00",
+  "scope": "Read-only inference configuration, service metadata, and allowed maintenance evidence. No inference requests or model tests.",
+  "limitations": [
+    "Sources remain on the named host; hashes attest which bytes were reviewed, not independent reproduction.",
+    "No Documents trees, chat databases, credentials, or general session stores inspected.",
+    "Historical records are not new measurements. Configured lanes were not loaded to verify availability."
+  ],
+  "hosts": {
+    "Box": {
+      "sources": [
+        {
+          "path": "/data/maintenance/RETEST-RULES.md",
+          "sha256": "170de0b30e5d154b9dec0dfdfd405fc7dd64d38e584ad8e6665a08aa052fbd45",
+          "bytes": 61514
+        },
+        {
+          "path": "/data/maintenance/TEST-ACCEPTANCE-POLICY.json",
+          "sha256": "b5c4303fe5cb100aceb9c7e7791a02e301599cdf105b585cd041d3203805a5ed",
+          "bytes": 7117
+        },
+        {
+          "path": "/data/apps/lane-gate/acceptance.py",
+          "sha256": "24028aa994f1707a6cb2ea30d21b3b248a8aea085887a9c8ba7757954ca31cee",
+          "bytes": 11249
+        },
+        {
+          "path": "/data/apps/lane-gate/needle-batch.py",
+          "sha256": "43e5ef6fc886de97b19a8998a270714ff8b20d7bb13e2c152da880d5bc394f9f",
+          "bytes": 8519
+        },
+        {
+          "path": "/data/apps/lane-gate/records.json",
+          "sha256": "3b7c8612efe446b8db5f15a6b6a8667b4d70050dcb651744276259473b0c2a65",
+          "bytes": 19881
+        },
+        {
+          "path": "/data/maintenance/authorised-updates-20261103/REPORT.md",
+          "sha256": "17dadef915bbc42231561a68c177f6863d83a7505e242f6de0d844c520ccb70e",
+          "bytes": 8434
+        },
+        {
+          "path": "/data/maintenance/authorised-updates-20261103/FINAL-ESTATE-VERIFICATION.json",
+          "sha256": "5230e0e9a2121ad6fbc7fcc733a1458e3215012120948e8eb2e68bc341850d8f",
+          "bytes": 94890
+        },
+        {
+          "path": "/data/maintenance/ornith-box-20261105/JUDGED.json",
+          "sha256": "200689711887cfaf9769b3ab20260dc8c7bf5cedc99bccb1a31e4c0a8593829d",
+          "bytes": 20521
+        },
+        {
+          "path": "/data/maintenance/ornith-box-r1-20261105/USER-WAIVER.json",
+          "sha256": "69d020c225443a485078a505fa73ba801fc2f03773bc1dedd8a55db650e6ffc4",
+          "bytes": 1088
+        },
+        {
+          "path": "/data/maintenance/ornith-box-r2-20261105/RESULTS.md",
+          "sha256": "da3b2a6b55b577c632261f6f5fe5ce6a751b34f0a42069751069261968499bbd",
+          "bytes": 6161
+        },
+        {
+          "path": "/data/maintenance/ornith-box-r2-20261105/FINAL.json",
+          "sha256": "ab6f66e036e406a063aea423b453dd6448040364a392251b7bea5378402ed039",
+          "bytes": 469
+        },
+        {
+          "path": "/data/maintenance/titan-vram-reserve-20261105/JUDGED.json",
+          "sha256": "38fe573ccd7c4e4ca193286597c881719273f4f96503ef396536bf2e45fbfacb",
+          "bytes": 11187
+        },
+        {
+          "path": "/data/maintenance/titan-vram-reserve-20261105/RESULTS.md",
+          "sha256": "ee75b85e4b65f0178e325595a3d5d9bfe2ff95bfde224fb9f210214cb0823499",
+          "bytes": 2779
+        },
+        {
+          "path": "/data/maintenance/strata0210-ds-20261103/DS-JUDGED.json",
+          "sha256": "5324daaa18005e46705869a1327ddc44660f59565a2dd7894a658db087e3bba1",
+          "bytes": 10414
+        },
+        {
+          "path": "/data/maintenance/adopt-ds0210-20261103-waived/USER-WAIVER.json",
+          "sha256": "8f89cb6aac9b64e1a4a5e4f0166ac952dab8391b44c645b240183f171e87e37c",
+          "bytes": 1476
+        },
+        {
+          "path": "/data/maintenance/exl3-166-20261102/run-20261102-094305/FINAL.json",
+          "sha256": "0267cb473ce9c2a1d090eafec33bbd37342ffecbe084a1bfc794b77435d3f5bd",
+          "bytes": 143
+        },
+        {
+          "path": "/data/maintenance/exl3-166-20261102/run-20261102-101415/FINAL.json",
+          "sha256": "992cbc22c0778ac32321ab834a43d8bbf17a18113a0b1caa61ba4c5736f85af0",
+          "bytes": 143
+        },
+        {
+          "path": "/data/maintenance/exl3-166-20261102/promote-20261102-112217/FINAL.json",
+          "sha256": "45488229001fd6c2d9fc341be109c36e7b7438f10f92d8f2c2cbb3ff50ae5067",
+          "bytes": 143
+        },
+        {
+          "path": "/data/maintenance/storage-cleanup-20261105/RESULT.md",
+          "sha256": "52584ae511ed58ecba814b51567330998170ba6390721ec8c027c3d629a9d793",
+          "bytes": 3367
+        },
+        {
+          "path": "/data/maintenance/comfytorch215-20261030/FINAL.json",
+          "sha256": "2ac685fc7c4291848ea9b976253e77740fe2d1fb12e0b2241353c4b7dc04130b",
+          "bytes": 660
+        },
+        {
+          "path": "/data/maintenance/comfy-20261103-recovery1/FINAL.json",
+          "sha256": "576cce76b9029044cba3bf897b9732895eccd50262ba5d2f38d707b7a9318365",
+          "bytes": 298
+        },
+        {
+          "path": "/data/maintenance/strata028-20261030/FINAL.json",
+          "sha256": "bb5823321087098851913188d71d7ebb1600b99da0f7017f7e031babcf749745",
+          "bytes": 1814
+        },
+        {
+          "path": "/data/maintenance/overnight-20261029/RESULTS.md",
+          "sha256": "76ef3cd6131ac4c5ea0d95aae2b9062288da8a9b4be5c5951f11b88046d5c2c0",
+          "bytes": 885
+        },
+        {
+          "path": "/data/maintenance/night-20261101/atlas-rerun/RESULTS.md",
+          "sha256": "71997d677a800948a7a8e24bb85abb3b41a1dbb3a16bdc8e16b7b8efb4d45162",
+          "bytes": 235
+        },
+        {
+          "path": "/data/apps/strata-v0210-20261103/strata-titan-iq4-xs-xtx.json",
+          "sha256": "d660cf68eb185c983cc5f0d979abef277d07e48cd94611e9785ec1ed5e5f44c6",
+          "bytes": 3353
+        },
+        {
+          "path": "/data/apps/strata-v0210-20261103/strata-titan-uncensored-xtx.json",
+          "sha256": "a255ea4454e3c4ac2b4f4420651677e4820bd78b526b3e64f0ac8755b311729f",
+          "bytes": 3633
+        },
+        {
+          "path": "/data/apps/strata-v0210-20261103/strata-deepseek41.json",
+          "sha256": "f5dabdee5f6c3ec3b6e39131341ba737094edd3506de82dc98de1225749c649c",
+          "bytes": 1469
+        },
+        {
+          "path": "/data/apps/maya-v1150-20261103/maya-maya-m-hip.json",
+          "sha256": "bd2877006c823b58ce9bfa9f492ca442c41b5403150c2d90416e7cfac6c99dc6",
+          "bytes": 1844
+        },
+        {
+          "path": "/data/apps/tabby-guard-huihui-exl3.sh",
+          "sha256": "54b6a0bfbbe53a297f475daacd1bb1baff09ecf7a2b4dcccdd2d881c721713d2",
+          "bytes": 6328
+        },
+        {
+          "path": "/data/apps/llama-server-guard-hip-achyudh-3ef1275-signal.sh",
+          "sha256": "5f39369f79f75bf87b8bc3daa258393890637fe7c662e7ef41895ee39cf59c3e",
+          "bytes": 5708
+        },
+        {
+          "path": "~/.config/llama-swap/config.yaml",
+          "sha256": "d23e5af78e5866c4039d1ec1f06aeab4b59ef0f931a1118da17c121c886219ba",
+          "bytes": 32712
+        }
+      ],
+      "hold": {
+        "active": true,
+        "hold_id": "model-tests-held-20261027",
+        "automatic_resume": false,
+        "normal_serving_affected": false,
+        "notification_resume_authorised": false
+      },
+      "adopted_records": {
+        "box-flash-next": {
+          "date": "2026-11-05",
+          "runtime": "/data/apps/strata-v0210-20261103",
+          "source": "/data/maintenance/titan-vram-reserve-20261105/promotion/RESULT.json",
+          "fresh": 36.9309,
+          "returning": 1.1903,
+          "decode": 62.2,
+          "traps": "15/15",
+          "needle": true,
+          "needle_protocol": "joint-needle-v1",
+          "needle_requests": 1,
+          "measurement_protocol": {
+            "name": "oc100k-agent-session",
+            "returning_statistic": "upper_median",
+            "returning_samples": 4,
+            "fresh_prompt_tokens": 98385,
+            "decode_min_generated_tokens": 32
+          },
+          "qualification_scope": "full primary suite, single card",
+          "primary_measurement_lane": "box-flash-next",
+          "topology": "single card XTX (gpu [0]); R9700 free for box-ornith",
+          "vram_reserve_mib": 768
+        },
+        "box-flash-next-uncensored": {
+          "date": "2026-11-05",
+          "runtime": "/data/apps/strata-v0210-20261103",
+          "source": "/data/maintenance/titan-vram-reserve-20261105/promotion/RESULT.json",
+          "fresh": 36.9309,
+          "returning": 1.1903,
+          "decode": 62.2,
+          "traps": "15/15",
+          "needle": true,
+          "needle_protocol": "joint-needle-v1",
+          "needle_requests": 1,
+          "measurement_protocol": {
+            "name": "oc100k-agent-session",
+            "returning_statistic": "upper_median",
+            "returning_samples": 4,
+            "fresh_prompt_tokens": 98385,
+            "decode_min_generated_tokens": 32
+          },
+          "qualification_scope": "primary measurements reused; routed light twin verification (chat, health, control vector mode = project); full twin suite not repeated",
+          "primary_measurement_lane": "box-flash-next",
+          "topology": "single card XTX (gpu [0]); R9700 free for box-ornith",
+          "vram_reserve_mib": 768
+        },
+        "box-glm53": {
+          "date": "2026-11-03",
+          "runtime": "/data/apps/maya-v1150-20261103",
+          "source": "/data/maintenance/maya1150-20261103/promotion/maya/RESULT.json",
+          "fresh": 144.32770000000002,
+          "returning": 2.0511,
+          "decode": 26.6,
+          "traps": "15/15",
+          "needle": true,
+          "needle_protocol": "joint-needle-v1",
+          "needle_requests": 1,
+          "measurement_protocol": {
+            "name": "oc100k-agent-session",
+            "returning_statistic": "upper_median",
+            "returning_samples": 5,
+            "fresh_prompt_tokens": 96909,
+            "decode_min_generated_tokens": 32
+          }
+        },
+        "box-glm53-steered": {
+          "date": "2026-11-03",
+          "runtime": "/data/apps/maya-v1150-20261103",
+          "source": "/data/maintenance/maya1150-20261103/promotion/maya/RESULT.json",
+          "fresh": 144.32770000000002,
+          "returning": 2.0511,
+          "decode": 26.6,
+          "traps": "15/15",
+          "needle": true,
+          "needle_protocol": "joint-needle-v1",
+          "needle_requests": 1,
+          "measurement_protocol": {
+            "name": "oc100k-agent-session",
+            "returning_statistic": "upper_median",
+            "returning_samples": 5,
+            "fresh_prompt_tokens": 96909,
+            "decode_min_generated_tokens": 32
+          }
+        },
+        "box-deepseek41": {
+          "date": "2026-11-03",
+          "runtime": "/data/apps/strata-v0210-20261103",
+          "source": "/data/maintenance/adopt-ds0210-20261103-waived/promotion/deepseek/RESULT.json",
+          "fresh": 256.3023,
+          "returning": 12.9992,
+          "decode": 21.2,
+          "traps": "15/15",
+          "needle": true,
+          "needle_protocol": "joint-needle-v1",
+          "needle_requests": 1,
+          "measurement_protocol": {
+            "name": "oc100k-agent-session",
+            "returning_statistic": "upper_median",
+            "returning_samples": 4,
+            "fresh_prompt_tokens": 97244,
+            "decode_min_generated_tokens": 32
+          },
+          "qualification_scope": "full primary suite",
+          "primary_measurement_lane": "box-deepseek41",
+          "waiver": {
+            "scope": "Abyss and Abyss Steered Strata0.2.10 adoption only; returning latency only",
+            "waived_gates": [
+              "returning_within_tolerance"
+            ],
+            "candidate_seconds": 12.9992,
+            "reference_seconds": 11.0364,
+            "limit_seconds": 11.58822,
+            "one_run_only": true
+          }
+        },
+        "box-qwen27": {
+          "date": "2026-10-31",
+          "runtime": "/data/apps/llama.cpp-achyudh-3ef1275-dos-20261031",
+          "source": "/data/maintenance/night-20261101/atlas-dos/RESULT.json",
+          "fresh": 114.707785,
+          "returning": 0.528263,
+          "decode": 59.227567994119056,
+          "traps": "15/15",
+          "needle": null,
+          "needle_protocol": "legacy-independent",
+          "needle_requests": null,
+          "measurement_protocol": {
+            "name": "oc100k-agent-session",
+            "returning_statistic": "upper_median",
+            "returning_samples": 4,
+            "fresh_prompt_tokens": 98372,
+            "decode_min_generated_tokens": 32
+          }
+        },
+        "box-ornith122": {
+          "date": "2026-10-24",
+          "runtime": "/data/apps/polystrata-90347087",
+          "source": "memory box-ornith122-summit-lane (PolyStrata two-card trial)",
+          "fresh": 183.5,
+          "returning": null,
+          "decode": 20.7,
+          "traps": "15/15"
+        },
+        "box-orcacyber": {
+          "date": "2026-10-31",
+          "runtime": "/data/apps/llama.cpp-achyudh-3ef1275-dos-20261031",
+          "source": "/data/maintenance/night-20261101/atlas-dos/TWIN-LIGHT.json",
+          "fresh": null,
+          "returning": null,
+          "decode": null
+        },
+        "box-qwen27-huihui-exl3": {
+          "date": "2026-11-02",
+          "runtime": "/data/apps/exl3-rdna-166-20261102",
+          "source": "/data/maintenance/exl3-166-20261102/run-20261102-101415/oc100k/C1/result.json",
+          "fresh": 100.59,
+          "returning": 0.93,
+          "decode": 82.44274809160306,
+          "traps": "10/15 diagnostic (waived by Daniel 26 Oct)",
+          "needle": true
+        },
+        "box-deepseek41-steered": {
+          "date": "2026-11-03",
+          "runtime": "/data/apps/strata-v0210-20261103-ds-cvec",
+          "source": "/data/maintenance/adopt-ds0210-20261103-waived/promotion/deepseek/RESULT.json",
+          "fresh": 256.3023,
+          "returning": 12.9992,
+          "decode": 21.2,
+          "traps": "15/15",
+          "needle": true,
+          "needle_protocol": "joint-needle-v1",
+          "needle_requests": 1,
+          "measurement_protocol": {
+            "name": "oc100k-agent-session",
+            "returning_statistic": "upper_median",
+            "returning_samples": 4,
+            "fresh_prompt_tokens": 97244,
+            "decode_min_generated_tokens": 32
+          },
+          "qualification_scope": "primary measurements reused; private and routed light twin verification; full twin suite not repeated",
+          "primary_measurement_lane": "box-deepseek41",
+          "waiver": {
+            "scope": "Abyss and Abyss Steered Strata0.2.10 adoption only; returning latency only",
+            "waived_gates": [
+              "returning_within_tolerance"
+            ],
+            "candidate_seconds": 12.9992,
+            "reference_seconds": 11.0364,
+            "limit_seconds": 11.58822,
+            "one_run_only": true
+          }
+        },
+        "box-ornith": {
+          "date": "2026-11-05",
+          "runtime": "llama.cpp achyudh 3ef1275-dos HIP via /data/apps/llama-server-guard-hip-achyudh-3ef1275-signal.sh",
+          "source": "/data/maintenance/ornith-box-r2-20261105/promotion/RESULT.json",
+          "fresh": 30.386514,
+          "returning": 0.21631,
+          "decode": 53.64811960966958,
+          "traps": "11/15",
+          "needle": true,
+          "needle_protocol": "joint-needle-v1",
+          "needle_requests": 1,
+          "measurement_protocol": {
+            "name": "oc100k-agent-session",
+            "returning_statistic": "upper_median",
+            "returning_samples": 12,
+            "fresh_prompt_tokens": 98372,
+            "decode_min_generated_tokens": 32
+          },
+          "waiver_source": "/data/maintenance/ornith-box-r2-20261105/USER-WAIVER.json"
+        }
+      },
+      "observed_configuration": {
+        "os": "Ubuntu 26.04.1 LTS",
+        "kernel": "7.0.0-42-generic",
+        "mesa_vulkan": "26.0.8-1ubuntu0.3",
+        "cpu": "Intel Core i5-14600KF",
+        "ram_nominal_gb": 96,
+        "gpus": [
+          {
+            "name": "Radeon RX 7900 XTX",
+            "nominal_vram_gb": 24
+          },
+          {
+            "name": "Radeon AI PRO R9700",
+            "nominal_vram_gb": 32
+          }
+        ],
+        "routing_pools": {
+          "xtx_lease": 1,
+          "r9700_lease": 1
+        },
+        "configured_model_count": 10,
+        "inference_backends": [
+          "Strata 0.2.10 HIP",
+          "Maya 1.1.50 HIP",
+          "llama.cpp achyudh 3ef1275 with DoS patch, HIP",
+          "EXL3 1.6.6 RDNA via tabbyAPI"
+        ],
+        "comfyui_checkout": "4d988b64",
+        "retest_queue_timer": "disabled",
+        "image_smoke_timer": "disabled"
+      }
+    },
+    "Strix": {
+      "sources": [
+        {
+          "path": "/data/maintenance/RETEST-RULES.md",
+          "sha256": "f8279eac5275850d24dc41e670f2b93ac63a2b59fb611987d0e67f65d872d5ad",
+          "bytes": 54220
+        },
+        {
+          "path": "/data/maintenance/TEST-ACCEPTANCE-POLICY.json",
+          "sha256": "b5c4303fe5cb100aceb9c7e7791a02e301599cdf105b585cd041d3203805a5ed",
+          "bytes": 7117
+        },
+        {
+          "path": "/data/apps/lane-gate/acceptance.py",
+          "sha256": "24028aa994f1707a6cb2ea30d21b3b248a8aea085887a9c8ba7757954ca31cee",
+          "bytes": 11249
+        },
+        {
+          "path": "/data/apps/lane-gate/needle-batch.py",
+          "sha256": "43e5ef6fc886de97b19a8998a270714ff8b20d7bb13e2c152da880d5bc394f9f",
+          "bytes": 8519
+        },
+        {
+          "path": "/data/maintenance/strix-runtimes-20261030/evidence/RESULT.json",
+          "sha256": "f503bfec34161af8a6f0c63069a4d719223248bd2d3b0396202218d989dddd85",
+          "bytes": 24082
+        },
+        {
+          "path": "/data/maintenance/halobox-b1043-20261102/RESULTS.md",
+          "sha256": "162dfb29d9e4d20437bb7a84a5d540d49cb1a6cb5c7592e3b60464ba82cd9c5c",
+          "bytes": 4789
+        },
+        {
+          "path": "/data/maintenance/strix-incumbent-redact-20261101/RESULTS.md",
+          "sha256": "bb3f32d04f2d69e5c2e02a8f566b4519a243c4669f43a22203e93279782728fd",
+          "bytes": 1690
+        },
+        {
+          "path": "/data/maintenance/night-20261101/strix/RESULTS.md",
+          "sha256": "159ee70fc4e527f4259e94609fca4887f8314d4b6ff3efc79e43d7d95da58fdd",
+          "bytes": 2682
+        },
+        {
+          "path": "/data/maintenance/dflash-20261102/evidence.attempt1-n_rs_seq15/RESULT.json",
+          "sha256": "f2b3ecc89ada4bc3f09b82ca1f95ff41e79a34c02e1496e72d69c16d45280629",
+          "bytes": 1286
+        },
+        {
+          "path": "/data/maintenance/dflash-20261102/evidence/RESULT.json",
+          "sha256": "4de1550fd5c01da8338e3a6c310b11ed3251aa2a47be2f7a470f66972a17fbe9",
+          "bytes": 1328
+        },
+        {
+          "path": "/data/maintenance/dflash-r3-20261101/evidence/RESULT.json",
+          "sha256": "99b44c1452fd6da6dd2a99813203dad10b8e6cb821d6c47208ece186b091376b",
+          "bytes": 39818
+        },
+        {
+          "path": "/data/maintenance/dflash-r3-20261101/evidence/RESULTS.md",
+          "sha256": "f41fa817060667b7c5c5e7791893f9b7eaac7369fe74f3c7e0db0702d2a3eb31",
+          "bytes": 9087
+        },
+        {
+          "path": "/data/maintenance/ornith-abl-suite-20261103/evidence/RESULT.json",
+          "sha256": "4935a5ad292c9bfa3841a256036542df1f5c280b727f17c170992ef41a76070a",
+          "bytes": 248459
+        },
+        {
+          "path": "/data/maintenance/ornith-abl-suite-20261103/READY.json",
+          "sha256": "a7f9882399980825bcaba4502626ebb4d7c4b3e6a343e289c7b58cf08e25d2fa",
+          "bytes": 14166
+        },
+        {
+          "path": "/data/maintenance/ornith-abl-suite-20261103/REFS.json",
+          "sha256": "804948e4619f9215f8f6f5fcae6d384e8c1f3a514dd420e0e78e2a735b8e6b5b",
+          "bytes": 3317
+        },
+        {
+          "path": "/data/maintenance/ornith-abl-suite-20261103/PLAN.md",
+          "sha256": "6305a866bc7c63159dcc1b8ef90ad974356df9e772471e6318fdabfc019c4c79",
+          "bytes": 7069
+        },
+        {
+          "path": "/data/maintenance/ornith-abl-cutover-20261103/PLAN.md",
+          "sha256": "2d0834e94aee9fa8376029746bd1180aa5e0ed97549e34731cee9f465010b2f5",
+          "bytes": 5965
+        },
+        {
+          "path": "/data/apps/UPDATE-MANAGER.md",
+          "sha256": "1352f4203d52aae7d28b03c221004e8278f5763c283e31e504293b787014d865",
+          "bytes": 26859
+        },
+        {
+          "path": "/data/apps/strix/operational-backup-policy.json",
+          "sha256": "53e6e6119449974a29c735743a390a18904d02c2533d28c61b8663a59332db54",
+          "bytes": 11180
+        },
+        {
+          "path": "/data/apps/strix/strix-resource-contract.py",
+          "sha256": "f920364025a393a629940e671ceda88e9dfeca18050b983c632593ede209639d",
+          "bytes": 15587
+        },
+        {
+          "path": "/data/apps/claude-local/router.mjs",
+          "sha256": "c448c633b636dc70b1828487db6b85698a7b69ecb5e706c1f6bce41901e66f2b",
+          "bytes": 44185
+        },
+        {
+          "path": "/etc/systemd/system/llm-ornith15-universal.service",
+          "sha256": "e5f40542f0ace2166db92546550e17fbf18491d6ff9ee693692b467c053b2c88",
+          "bytes": 1939
+        },
+        {
+          "path": "/etc/systemd/system/llm-ornith15-universal.service.d/90-uncensored-20261103.conf",
+          "sha256": "a3b9ad961d93b09b2590645ca5118e4492c1cfb155b1447c4ed43527684ef8da",
+          "bytes": 1175
+        },
+        {
+          "path": "/etc/systemd/system/llm-ornith15-universal.service.d/95-wake-guard-20261105.conf",
+          "sha256": "cd862d2dbd9ddeba67b62f736101db3b58a88fe6bf1db46382b817cf108cf7e0",
+          "bytes": 189
+        },
+        {
+          "path": "/etc/systemd/system/llm-paddleocr.service.d/50-lightonocr3.conf",
+          "sha256": "2bcbfc25259f7f3b6d25da4f2460a44dbb25b498deae3c0ea6be9c03fdb21ce6",
+          "bytes": 1357
+        },
+        {
+          "path": "/etc/systemd/system/llm-embeddings.service.d/30-ctx.conf",
+          "sha256": "a8b13169cbd8ef24019ecee453de2fd9589bdffe370aa711a4ac979cd9ef81e4",
+          "bytes": 555
+        }
+      ],
+      "hold": {
+        "active": true,
+        "hold_id": "model-tests-held-20261027",
+        "automatic_resume": false,
+        "normal_serving_affected": false,
+        "notification_resume_authorised": false
+      },
+      "agent_suite_2026_11_06": {
+        "started": "2026-11-06 01:00:01",
+        "finished": "2026-11-06 01:15:51",
+        "verdict": "FAIL",
+        "engine_starts": 1,
+        "reference_reloaded": false,
+        "new_adoption": false,
+        "outage_seconds": 944.3278534412384,
+        "gates": [
+          {
+            "gate": "coding",
+            "verdict": "FAIL"
+          },
+          {
+            "gate": "safety15-traps-score-pre-waived",
+            "verdict": "WAIVED"
+          },
+          {
+            "gate": "vision",
+            "verdict": "PASS"
+          },
+          {
+            "gate": "oc100k-correctness",
+            "verdict": "FAIL"
+          },
+          {
+            "gate": "performance-fresh",
+            "verdict": "PASS"
+          },
+          {
+            "gate": "performance-returning",
+            "verdict": "PASS"
+          },
+          {
+            "gate": "performance-decode",
+            "verdict": "FAIL"
+          },
+          {
+            "gate": "stream_tools",
+            "verdict": "PASS"
+          },
+          {
+            "gate": "stream_cancel",
+            "verdict": "FAIL"
+          },
+          {
+            "gate": "joint256k-10-50-90",
+            "verdict": "PASS"
+          },
+          {
+            "gate": "native",
+            "verdict": "FAIL"
+          },
+          {
+            "gate": "three-slots-262144",
+            "verdict": "PASS"
+          },
+          {
+            "gate": "runtime-model-identity",
+            "verdict": "PASS"
+          },
+          {
+            "gate": "memory-contract",
+            "verdict": "PASS"
+          },
+          {
+            "gate": "kernel-engine-faults",
+            "verdict": "PASS"
+          },
+          {
+            "gate": "new-incumbent-restored",
+            "verdict": "PASS"
+          }
+        ],
+        "performance": {
+          "performance-fresh": {
+            "absolute_floor": 0.5,
+            "allowance": 3.665,
+            "candidate": 73.030713,
+            "classification": "within_practical_tolerance",
+            "delta": -0.269287,
+            "direction": "lower",
+            "interpretation": "Engineering acceptance tolerances, not a measured statistical noise distribution or proof of significance.",
+            "limit": 76.965,
+            "metric": "fresh",
+            "passed": true,
+            "path": "/data/maintenance/TEST-ACCEPTANCE-POLICY.json",
+            "policy_id": "metric-aware-20261028-v1",
+            "policy_sha256": "b5c4303fe5cb100aceb9c7e7791a02e301599cdf105b585cd041d3203805a5ed",
+            "reference": 73.3,
+            "reference_jitter": 0.0,
+            "relative_allowance": 3.665,
+            "status": "PASS",
+            "unit": "seconds",
+            "worse_delta": -0.269287,
+            "worse_pct": -0.36737653478854027
+          },
+          "performance-returning": {
+            "absolute_floor": 0.5,
+            "allowance": 0.5,
+            "candidate": 0.44258800000000004,
+            "classification": "within_practical_tolerance",
+            "delta": 0.04258800000000004,
+            "direction": "lower",
+            "interpretation": "Engineering acceptance tolerances, not a measured statistical noise distribution or proof of significance.",
+            "limit": 0.9,
+            "metric": "returning",
+            "passed": true,
+            "path": "/data/maintenance/TEST-ACCEPTANCE-POLICY.json",
+            "policy_id": "metric-aware-20261028-v1",
+            "policy_sha256": "b5c4303fe5cb100aceb9c7e7791a02e301599cdf105b585cd041d3203805a5ed",
+            "reference": 0.4,
+            "reference_jitter": 0.0,
+            "relative_allowance": 0.02,
+            "status": "PASS",
+            "unit": "seconds",
+            "worse_delta": 0.04258800000000004,
+            "worse_pct": 10.64700000000001
+          },
+          "performance-decode": {
+            "absolute_floor": 0.0,
+            "allowance": 2.2745,
+            "candidate": 41.86401820794646,
+            "classification": "regression",
+            "delta": -3.62598179205354,
+            "direction": "higher",
+            "interpretation": "Engineering acceptance tolerances, not a measured statistical noise distribution or proof of significance.",
+            "limit": 43.2155,
+            "metric": "decode",
+            "passed": false,
+            "path": "/data/maintenance/TEST-ACCEPTANCE-POLICY.json",
+            "policy_id": "metric-aware-20261028-v1",
+            "policy_sha256": "b5c4303fe5cb100aceb9c7e7791a02e301599cdf105b585cd041d3203805a5ed",
+            "reference": 45.49,
+            "reference_jitter": 0.0,
+            "relative_allowance": 2.2745,
+            "status": "FAIL",
+            "unit": "tokens_per_second",
+            "worse_delta": 3.62598179205354,
+            "worse_pct": 7.9709426072841065
+          }
+        }
+      },
+      "observed_configuration": {
+        "os": "Ubuntu 26.04.1 LTS",
+        "kernel": "7.0.0-42-generic",
+        "mesa_vulkan": "26.0.8-1ubuntu0.3",
+        "cpu": "Ryzen AI Max+ 395",
+        "ram_nominal_gb": 64,
+        "agent": {
+          "runtime": "HaloBox 66da654-cve1 Vulkan",
+          "exe_sha256": "c349ead4a2ab996c84bb1d8651be11a31bec675c0b45db9f4e2844aa82f65357",
+          "weights": "Ornith 1.5 35B-A3B abliterated MTPv2 UD-Q6_K",
+          "total_context": 786432,
+          "slots": 3,
+          "per_slot_context": 262144,
+          "sleep_idle_seconds": 300,
+          "draft_enabled": false,
+          "running_executable_hash_verified": true,
+          "gtt_limit_gib": 44,
+          "restart_delay_seconds": 30
+        },
+        "ocr": {
+          "runtime": "HaloBox 66da654-cve1 Vulkan",
+          "weights": "LightOnOCR-3 0.8B Q8_0",
+          "context": 8192
+        },
+        "embeddings": {
+          "runtime": "llama.cpp b11868 Vulkan",
+          "weights": "0.6B Q8_0",
+          "context": 8192
+        },
+        "open_webui_installed_version": "0.13.0",
+        "voice": "socket-activated whisper STT; CPU Kokoro TTS",
+        "reranking": "unit installed, disabled, and inactive"
+      }
+    }
+  }
+}

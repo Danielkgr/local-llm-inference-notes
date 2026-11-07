@@ -3,13 +3,14 @@
 
 import argparse
 import os
+import re
 import sys
 import time
 import urllib.error
 import urllib.request
 
 CHUNK = 1 << 20
-UA = {"User-Agent": "resume-dl/1.0"}
+UA = {"User-Agent": "resume-dl/1.0", "Accept-Encoding": "identity"}
 # 408 and 429 ask the client to come back later, so they are worth waiting out.  Any
 # other 4xx gives the same answer on every attempt: retrying a 404 500 times, with
 # back-off, spends hours and hides the real error.
@@ -46,17 +47,35 @@ def attempt(url, dest, total, log):
             )
         if not have and code not in (200, 206):
             raise RuntimeError(f"unexpected HTTP {code}")
+        if r.headers.get("Content-Encoding", "identity").lower() != "identity":
+            raise RuntimeError("encoded response cannot be matched to the expected file bytes")
+        expected_bytes = total - have
+        if code == 206:
+            match = re.fullmatch(r"bytes (\d+)-(\d+)/(\d+)", r.headers.get("Content-Range", ""))
+            if not match:
+                raise RuntimeError("missing or invalid Content-Range")
+            start, end, remote_total = map(int, match.groups())
+            if start != have or remote_total != total or not start <= end < total:
+                raise RuntimeError("Content-Range does not match the local offset and target size")
+            expected_bytes = end - start + 1
+        length = r.headers.get("Content-Length")
+        if length is not None and (not length.isdigit() or int(length) != expected_bytes):
+            raise RuntimeError("Content-Length does not match the expected response size")
         log(
             f"  resuming at {have} ({r.headers.get('Content-Range')})"
             if code == 206
             else f"  starting fresh (HTTP {code})"
         )
+        initial_have = have
+        response_end = have + expected_bytes
         last, start_bytes = time.time(), have
         with open(dest, "ab") as f:
             while True:
                 buf = r.read(CHUNK)
                 if not buf:
                     break
+                if have + len(buf) > response_end:
+                    raise RuntimeError("response exceeds the expected range or target size")
                 f.write(buf)
                 have += len(buf)
                 now = time.time()
@@ -67,6 +86,8 @@ def attempt(url, dest, total, log):
                         f"({have / total * 100:.1f}%) {rate:.1f} MB/s"
                     )
                     last, start_bytes = now, have
+    if have == initial_have and have < total:
+        raise RuntimeError("response made no download progress")
     return have, bool(total and have >= total)
 
 
@@ -88,21 +109,23 @@ def main(argv=None):
     )
     a = ap.parse_args(argv)
     url, dest, expect = a.url, a.dest, a.expect
+    if expect is not None and expect <= 0:
+        ap.error("--expect must be positive")
 
     def log(m):
         print(f"{time.strftime('%H:%M:%S')} {m}", flush=True)
 
-    if expect:
+    if expect is not None:
         total = expect
     else:
         try:
             total = head_size(url)
-        except (urllib.error.URLError, OSError) as e:
+        except (urllib.error.URLError, OSError, ValueError) as e:
             sys.exit(
                 f"ERROR: could not determine size ({e}); refusing to run blind.  "
                 "Pass --expect BYTES if the server will not answer HEAD."
             )
-    if not total:
+    if total <= 0:
         sys.exit("ERROR: could not determine size; refusing to run blind.")
     log(f"target {total} bytes -> {dest}")
     tries = 0

@@ -1,11 +1,9 @@
-# Two eval runs that scored the harness instead of the model
+# Model-name and sampling errors in two evaluation runs
 
-**Question.**  A model scores 0/50 on one run and 44/50 on another.  How do you
-know either number is about the model?
-
-**Verdict.**  Neither was.  Both results came from the harness, and both would
-have been quoted as capability findings if the failure rows had not been recorded
-alongside the scores.
+Two runs appeared to show serious model failures.  One scored zero out of fifty
+because the harness sent an invalid model identifier.  Another recorded 44 out
+of fifty after six answers exhausted their output budgets.  The second result
+was attributed to sampling, subject to the evidence limitation below.
 
 ## Case one: a perfect zero
 
@@ -26,14 +24,14 @@ run's model key is not a model name, it is two of them:
 Model identifiers are replaced with placeholders here.  The structure is
 verbatim: two names, each already containing a comma, joined by a third.
 
-Model names on this server contain commas.  A comma-separated list of two models
-and a single model whose name contains a comma are the same string, and the
-harness resolved it the wrong way, then asked the server for one model with a
-very long name.  Every task 404ed.
+Model names on this server contain commas.  A comma-separated list of two
+models and a single model whose name contains a comma are the same string, and
+the harness resolved it the wrong way, then asked the server for one model with
+a very long name.  Every task 404ed.
 
 A score of exactly zero across every task and every category is not a model
-result.  No model fails a word-count task and a JSON task and a substring task in
-the same way.  Identical failure text on all 50 rows is a harness signature.
+result.  No model fails a word-count task and a JSON task and a substring task
+in the same way.  Identical failure text on all 50 rows is a harness signature.
 
 ## Case two: a plausible number
 
@@ -50,19 +48,19 @@ Six of the failures were not wrong answers.  They were empty:
 | hard-instruct-02 | length | 17,353 chars |
 | hard-instruct-04 | length | 20,612 chars |
 
-The model spent its entire budget on `reasoning_content` and returned no content
-at all.  The harness had temperature hardcoded to 0, which is structurally unable
-to measure a model that loops under greedy decoding.  Run at its own recommended
-sampling, on the same 50-task suite, the same model scored **50/50 with zero
-errors**.
+The model spent its entire budget on `reasoning_content` and returned no
+content at all.  The harness had temperature hardcoded to 0, which is
+structurally unable to measure a model that loops under greedy decoding.  Run
+at its own recommended sampling, on the same 50-task suite, the same model
+scored **50/50 with zero errors**.
 
 A 12 per cent gap was reported as a capability difference.  It was a sampling
 choice belonging to the harness.
 
-**Sourcing caveat.**  Those two runs do not record their sampling settings.  The
-attribution rests on the file naming and the harness's own change history, not on
-the result files.  That is a real weakness in the evidence, and it is exactly the
-weakness the third fix below addresses.
+**Sourcing caveat.**  Those two runs do not record their sampling settings.
+The attribution rests on the file naming and the harness's own change history,
+not on the result files.  That is a real weakness in the evidence, and it is
+exactly the weakness the third fix below addresses.
 
 ## What changed
 
@@ -84,17 +82,8 @@ only reason case two was diagnosable at all.  Had those six rows been scored as
 ordinary failures, 44/50 would have looked like a model that is bad at
 instruction following.
 
-## What generalises
+## Scope
 
-Record enough per-item detail to tell your own failures from the subject's.  A
-score alone cannot distinguish "the model answered incorrectly" from "the model
-never answered" from "the request never arrived", and those three have nothing in
-common except the number they produce.
-
-Two cheap signatures are worth watching for.  A result of exactly zero, or exactly
-the maximum, usually indicts the harness rather than the subject.  Identical
-failure text across unrelated categories means one shared cause upstream of the
-thing being tested.
-
-The general form: before believing a measurement, check that the apparatus was
-capable of producing a different one.
+The result files need enough per-task detail to distinguish a wrong answer, an
+empty answer, and a transport error.  The sampling attribution in the second
+case remains subject to the sourcing caveat above.

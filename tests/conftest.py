@@ -160,6 +160,7 @@ class FakeFileServer:
         self.head_status = 200
         self.get_statuses: list[int] = []
         self.gets = 0
+        self.content_range: str | None = None
         fake = self
 
         class Handler(BaseHTTPRequestHandler):
@@ -187,7 +188,8 @@ class FakeFileServer:
                     self.send_response(206)
                     self.send_header(
                         "Content-Range",
-                        f"bytes {start}-{len(fake.content) - 1}/{len(fake.content)}",
+                        fake.content_range
+                        or f"bytes {start}-{len(fake.content) - 1}/{len(fake.content)}",
                     )
                 else:
                     body = fake.content

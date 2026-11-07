@@ -1,56 +1,54 @@
-# Broken weights or bad config? One greedy call tells you
+# Investigating a suspect 4-bit quantisation
 
-**Problem.**  A newly published 4-bit quantisation of a 27B model loaded with no
-warnings, then degenerated into a repeated single token.  The obvious suspects
-were sampler settings, the chat template, or the quantisation itself.  Each has a
-different and expensive fix.
+A newly published 4-bit quantisation of a 27B model loaded without warnings,
+then repeated a single token.  The immediate question was whether to adjust the
+sampler, correct the template, or replace the file.
 
-**The test.**  Send one short prompt at temperature 0.
+The file was replaced after degeneration persisted under greedy decoding, with
+thinking enabled and disabled, and with the corrected chat template.
 
-Greedy decoding removes the sampler from the equation entirely: at temperature 0
-there is no randomness left for a repetition penalty, a top-k, or a min-p value
-to be misconfigured against.  If the model still degenerates, the fault is in the
-weights.  No sampler adjustment and no template swap can recover it, so the
-correct action is to discard the file rather than tune it.
+## What the greedy check established
 
-In this case degeneration persisted at temperature 0, with thinking mode on and
-off, and with a corrected chat template.  The quant was bad.  It was replaced
-rather than debugged.
+Temperature zero removed sampling randomness from the diagnosis.  Repetition
+under that setting showed that random token selection was not necessary to
+produce the failure.  It helped avoid spending more time sweeping sampler
+settings on this file.
 
-## Why that particular quant broke
+The original version of this note went further and said that one greedy call
+proved the weights were broken.  That was too strong.  A runtime defect, wrong
+template, tokenizer mismatch, numerical fault, or deterministic decoding path
+can also fail at temperature zero.  Changing repetition controls can affect a
+greedy run as well.  Greedy decoding alone does not distinguish those causes.
 
-The model uses a hybrid attention architecture with small state-space tensors
-alongside the usual attention blocks.  Those tensors are numerically sensitive
-and need to be held at higher precision, typically Q8_0 or Q6_K, even inside a
-4-bit mixed quantisation.  Publishers who do this say so explicitly in the model
-card.  A straight uniform conversion to 4-bit destroys the linear-attention
-blocks while leaving a file that loads cleanly and reports nothing wrong.
+The tests here supported replacing this suspect quantisation.  They did not
+include a published tensor-level audit proving which conversion step caused the
+failure.
 
-That is the trap worth naming: the failure appears at generation time, not load
-time, so nothing in the startup log warns you.
+## A possible quantisation failure
 
-## The decision rule
+The model combines attention blocks with smaller state-space tensors.  Those
+tensors can require higher precision than the larger matrices in a mixed
+quantisation.  Reducing sensitive tensors too far is a plausible cause of a
+file loading successfully and failing during generation.
 
-| symptom | at temp 0 | conclusion |
-|---|---|---|
-| Repetition or degeneration | still present | broken weights, discard |
-| Repetition or degeneration | disappears | sampler configuration, fix flags |
-| Empty output, content field blank | still empty | inspect the reasoning field before assuming failure |
+That mechanism needs confirmation for a particular file.  The useful comparison
+would keep the runtime, template, tokenizer, and request fixed while checking a
+known-good quantisation or source weights.  The evidence recorded here does not
+justify treating every repetitive 4-bit model as the same conversion defect.
 
-The third row cost a separate session.  A merged model returned empty responses
-that looked like a broken chat template.  The template was fine: the model was
-looping inside its reasoning field and never reaching the content field.  The
-signal that separates the two is whether a reasoning field is present and
-populated, not whether the content field is empty.
+## Other symptoms found during the investigation
 
-A related lesson from the same model: a merge shipped with no repetition control
-in its serving configuration will loop where the base model does not.  Adding
-repetition control fixed the loops but damaged prose, stripping function words
-out of formal writing.  The eventual fix was neither, and was simply to use the
-sampler values the model card specified.
+| Symptom | Next check |
+|---|---|
+| Repetition persists at temperature zero | Inspect the deterministic path, template, runtime, and file identity.  Compare with known-good weights if available. |
+| Repetition disappears after sampling changes | Check the recommended sampler and repetition controls.  This does not establish that all other configuration is correct. |
+| Content is blank | Inspect finish reason and reasoning content before treating it as a wrong answer. |
 
-## Cost of not having this rule
+A merged model also returned blank content while looping in its reasoning
+field.  The template was not the immediate problem.  Adding repetition control
+stopped the loops but damaged prose by removing function words.  Using the
+published sampler values was the eventual configuration change.
 
-Before this rule existed, roughly a day went into sampler sweeps and template
-swaps against a file that could never have worked.  The test that would have
-settled it takes one API call and about two seconds.
+Roughly a day had gone into sampler and template changes before the suspect
+file was replaced.  The short greedy check would have narrowed the work much
+earlier.  It would not, on its own, have proved the cause.

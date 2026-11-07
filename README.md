@@ -2,170 +2,140 @@
 
 # Local LLM inference
 
-### Sixteen investigations on one 24 GB workstation, including the results that turned out to be wrong
+### Measurements, failed upgrades, and the tools used to check them
 
-![16 notes](https://img.shields.io/badge/notes-16-0969da?style=for-the-badge) ![8 of 16 verdicts negative](https://img.shields.io/badge/negative_verdicts-8_of_16-cf222e?style=for-the-badge) ![5 tools](https://img.shields.io/badge/tools-5-0969da?style=for-the-badge) [![CI](https://img.shields.io/github/actions/workflow/status/Danielkgr/local-llm-inference-notes/ci.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/Danielkgr/local-llm-inference-notes/actions/workflows/ci.yml) ![no LLM judges](https://img.shields.io/badge/LLM_judges-none-8250df?style=for-the-badge) ![MIT licence](https://img.shields.io/badge/licence-MIT-57606a?style=for-the-badge)
+![20 notes](https://img.shields.io/badge/notes-20-0969da?style=for-the-badge) ![2 hosts](https://img.shields.io/badge/hosts-2-0969da?style=for-the-badge) ![5 utilities](https://img.shields.io/badge/utilities-5-0969da?style=for-the-badge) [![CI](https://img.shields.io/github/actions/workflow/status/Danielkgr/local-llm-inference-notes/ci.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/Danielkgr/local-llm-inference-notes/actions/workflows/ci.yml) ![MIT licence](https://img.shields.io/badge/licence-MIT-57606a?style=for-the-badge)
 
 </div>
 
 <br>
 
-> Most published benchmark writing reports the changes that worked.  The expensive knowledge sits in the changes that did not, and in the discipline that separates the two.  **Half of the verdicts here are negative**, and several of them overturned a claim this repository had already published.
+I run local language models for coding, chat, and document work.  This
+repository records what I changed, what I measured, and why I kept or rejected
+it.  It also records the occasions when the measurement was wrong.
+
+The early notes concern a single 24 GB Radeon card.  The setup now spans two
+machines, Box and Strix, with different memory limits and workloads.  The
+[current setup](CURRENT.md) was reviewed on 7 November 2026.  The older notes
+describe the conditions at the time of each investigation.
 
 <br>
 
-## In plain English
+## Where to start
 
-Daniel Glynn-Roe is a lawyer in Melbourne.  This repository records measurements of language models running on a workstation under the author's own control, including the measurements that turned out to be wrong.  The same questions decide whether a law firm can put a model to work on client matters.
+| Looking for | Read |
+|---|---|
+| What runs now, including unresolved failures | [Current setup](CURRENT.md) |
+| The procedure for a new comparison | [Measurement rules](METHOD.md) |
+| Changes missing from the earlier repository | [7 November review](reviews/2026-11-07.md) |
+| Small tools to use elsewhere | [Tools and checks](tools/README.md) |
+| The older coding harness configuration | [Historical harness example](harness/README.md) |
 
-- **Is the model good enough?**  Vendor claims and public leaderboards were measured on someone else's tasks and machines.  Only a measurement on the firm's own work answers the question, and most of these notes show how easily that measurement goes wrong.
-- **Where does client material go?**  A model that runs locally keeps confidential and privileged client material on hardware the firm controls, instead of sending it to a cloud provider.  That privacy holds only while every tool in the chain is set up not to send data out, which also needs checking.
-- **What does control cost?**  Running models on-premises trades capability and convenience for control over data and upgrades.
-
-| | Hosted API in the cloud | Local inference on-premises |
-|---|---|---|
-| **Where client data goes** | To the provider's servers, under its contract and retention terms | It stays on hardware the firm controls |
-| **Cost profile** | Pay per use, with no hardware to buy.  Spend grows with use. | Hardware bought up front, then power and staff time.  Extra use costs little until the hardware is full. |
-| **Capability ceiling** | Includes the strongest commercial models, which are not released for local use | Whatever fits in local memory.  One 24 GB card holds mid-sized open models, not the largest. |
-| **Maintenance burden** | The provider runs, patches, and scales the service | The firm installs, measures, and patches the whole stack.  Most of these notes are that work. |
-| **Upgrade control** | The provider changes and retires models on its own timetable | Nothing changes until the firm decides.  Six engine upgrades were measured and rejected here, as [note 14](notes/14-six-upstream-bumps-rejected.md) records. |
-
-<br>
-
-## 1. The situation
-
-One workstation runs chat, agentic coding, retrieval, and image generation, all from a single 24 GB card.  Every decision competes for the same memory.  A larger quantisation costs context.  Context costs KV cache.  A speculative decoding head costs 1.5 GiB, which on one model cut usable working context by a factor of six.
-
-Published benchmarks settle none of it.  They ran on other hardware, at other context depths, with other flags, and the differences that matter here are often smaller than the differences between two machines.  Every decision therefore needed a measurement taken on the machine that would live with it.
-
-Measuring turned out to be the hard part.
+The latest Strix coding model is deployed, but its full suite on 6 November
+failed several checks.  Only its safety score had been waived.  Box also has
+adoptions made under specific waivers.  [CURRENT.md](CURRENT.md) separates what
+is serving from what passed qualification.
 
 <br>
 
-## 2. The problem
+## Why I keep these notes
 
-Getting numbers was never the difficulty.  The difficulty was that the first numbers usually looked like findings and were not.
+I am a lawyer in Melbourne.  Running a model locally gives me control over its
+weights, configuration, and upgrades.  It also leaves me responsible for
+checking that it does the work and that its tools handle data as intended.
+Local inference alone does not establish confidentiality.
 
-| It looked like | It actually was | Note |
-|---|---|:--:|
-| A **7 tok/s** decode win from a KV cache change | A week-old baseline.  A control run in the same sitting put the real difference at 3.4%, inside the noise band. | [05](notes/05-the-control-that-killed-a-false-claim.md) |
-| A **58%** speculative decoding speedup | Truncated output.  The fastest variant dropped content. | [03](notes/03-speculative-decoding-is-lossy.md) |
-| A model scoring **0/50**, then **44/50** | Two separate harness bugs.  Neither number described the model. | [09](notes/09-when-the-harness-scores-itself.md) |
-| A **three-point gap** between sampling profiles | Noise.  Three repeats produced three different rankings. | [12](notes/12-four-sampling-profiles-three-rankings.md) |
-| A model that **could not follow instructions** | A token budget running out mid-reasoning.  This happened five times, across four harnesses. | [15](notes/15-the-same-false-negative-five-times.md) |
-| Automatic compaction that **never fired** | A threshold sitting 90,000 tokens past the ceiling the server would accept. | [11](notes/11-a-guard-that-trusts-its-own-number.md) |
-| A backup that **exited zero** | An archive missing the inference binary the machine actually runs. | [07](notes/07-when-the-verifier-is-wrong.md) |
+Most of the work here concerns fairly ordinary decisions.  Does a new backend
+improve the workload I use?  Will more context fit without making the machine
+unreliable?  Did an upgrade preserve tool calls and retrieval?  Can I restore
+the previous setup if it fails?
 
-> [!WARNING]
-> Every one of those was on its way into the record as a fact.  Noticing that a number looked wrong caught none of them.  A procedure that ran whether or not anything looked wrong caught all seven.
+The misleading results have been at least as useful as the successful changes.
 
-<br>
+| Initial result | What the check found |
+|---|---|
+| About 7 tokens/s gained by changing the KV cache | A stale reference.  The matched comparison showed 3.4%, inside that experiment's band. |
+| A 58% speculative decoding improvement | Shorter, truncated output. |
+| A model scoring zero across fifty tasks | The harness had combined two model names into one invalid identifier. |
+| A model failing to follow instructions | Several runs had exhausted the output budget before producing an answer. |
+| All forty-eight embedding ranking cases passed | The new vectors still failed compatibility with the existing index and consumer. |
 
-## 3. The method
-
-More measurements do not fix this.  A fixed procedure does, and most rules below earn their place because breaking them produced a wrong result that was about to be published.
-
-| Rule | The failure that bought it | Note |
-|---|---|:--:|
-| Declare the noise band **before** the run | A band chosen after seeing the numbers is a rationalisation, not a band | |
-| Take three samples after a warm-up, and report medians **and the spread** | Decode spread jumped on two runs while prefill held steady, the signature of contention rather than an effect, so the spread check excluded both | [05](notes/05-the-control-that-killed-a-false-claim.md) |
-| Measure a control in the same sitting, even when a baseline exists | A week-old baseline turned a 3.4% null into an apparent 7 tok/s win | [05](notes/05-the-control-that-killed-a-false-claim.md) |
-| Alternate the arms rather than running them in blocks | Thermal and cache state drift over a session, and a block design aliases that drift onto the variable under test | |
-| Assert library provenance in both directions, from `/proc/PID/maps` | A benchmark that silently measures the same libraries twice returns a very convincing null | [01](notes/01-rocm-714-evaluation.md) |
-| Test the invariant the technique promises, not output quality | Greedy speculative decoding must produce identical output, so a single diff settles it | [03](notes/03-speculative-decoding-is-lossy.md) |
-| Never use a model to grade models | A judge makes the result depend on the very thing under test | [08](notes/08-a-benchmark-with-no-judge.md) |
-| Repeat one configuration before comparing two | An unmeasured noise floor makes every gap unfalsifiable | [12](notes/12-four-sampling-profiles-three-rankings.md) |
-| Compare failure sets, not totals | A one- or two-point gap is usually one coin-flip task | [13](notes/13-gating-on-the-failure-set.md) |
-| Print the token budget in the output | Five different budgets produced five false capability findings | [15](notes/15-the-same-false-negative-five-times.md) |
-
-> [!TIP]
-> **[METHOD.md](METHOD.md)** carries the full set of rules, each with the failure or the reasoning behind it.
+The notes give the conditions and limits behind those findings.  They are
+measurements of these workloads, not a ranking of models for every use.
 
 <br>
 
-## 4. The tooling
+## The investigations
 
-A rule that a program can enforce should not depend on attention.  Five proved worth extracting.  Each runs standalone, depends on little, and takes every path and endpoint as a flag or an environment variable, so it works away from this machine.  Defaults point at localhost.
-
-| Tool | What it enforces | Notes |
-|---|---|:--:|
-| [**model-eval/**](tools/model-eval/) | Scores any OpenAI-compatible server with deterministic graders and no judge, across two difficulty tiers.  Diffs against a baseline by percentage, and gates adoption on the failure set by running only the tasks capable of deciding the question.  A separate legal tier of twelve synthetic contract and policy tasks runs only with `--tier legal`, and has not yet been run. | [08](notes/08-a-benchmark-with-no-judge.md), [09](notes/09-when-the-harness-scores-itself.md), [13](notes/13-gating-on-the-failure-set.md) |
-| [**gguf-arch.py**](tools/gguf-arch.py) | Reads a model's architecture straight from the file header.  The obvious tool prints key names without their values, which turns an architecture gate into one that passes everything. | [07](notes/07-when-the-verifier-is-wrong.md) |
-| [**gpu-mutex-guard.sh**](tools/gpu-mutex-guard.sh) | Hands one GPU between an inference server and an image pipeline, waiting for the asynchronous VRAM release instead of racing it. | |
-| [**context-readout.py**](tools/context-readout.py) | Measures how close real conversations come to each model's configured limit, before VRAM buys headroom nobody reaches. | |
-| [**resume-dl.py**](tools/resume-dl.py) | Verifies HTTP 206 before resuming a download, and refuses to start without a known target size. | |
-
-<br>
-
-## 5. The result
-
-A measurement that ends in no decision is a hobby.  The machine now runs on these.
-
-> 🟢 adopted, 🔴 rejected, 🟡 adopted with a claim withdrawn, ⚪ deliberately unchanged
-
-| Decision | Outcome | Note |
-|---|---|:--:|
-| ROCm 7.14 for the serving tier | 🔴 **Rejected.**  Flat on llama.cpp across every arm, and the PyTorch side did not work at all. | [01](notes/01-rocm-714-evaluation.md) |
-| Mesa Vulkan in place of ROCm | 🟢 **Adopted.**  Decode rose 60.9% on the production chat model.  Two models stayed on ROCm at first, and a later check found every served model on Vulkan. | [02](notes/02-vulkan-vs-rocm.md) |
-| n-gram speculative decoding | 🔴 **Rejected.**  Every faster variant changed the output, and the fastest truncated it. | [03](notes/03-speculative-decoding-is-lossy.md) |
-| A newly published 4-bit quantisation | 🔴 **Discarded rather than tuned.**  One greedy call located the fault in the weights. | [04](notes/04-diagnosing-a-broken-quant.md) |
-| A q4_0 KV cache | 🟡 **Adopted** for the context it buys.  A stale baseline had produced the apparent decode gain, so that claim came out. | [05](notes/05-the-control-that-killed-a-false-claim.md) |
-| An LTS operating system upgrade | 🟢 **Taken early, and deliberately**, against a written rollback rather than the judgement of the day. | [06](notes/06-migrating-under-a-written-go-no-go.md) |
-| Six successive engine builds | 🔴 **All six rejected.**  A dense arm and a speculative arm measured each candidate, and none beat the incumbent. | [14](notes/14-six-upstream-bumps-rejected.md) |
-| A graphics driver point release | 🟢 **Adopted.**  Nothing moved measurably, which is precisely the result that makes it safe. | [14](notes/14-six-upstream-bumps-rejected.md) |
-| A kernel bump, with nobody at the machine | 🟢 **Adopted** behind a one-shot boot entry and an automatic post-boot render test. | [14](notes/14-six-upstream-bumps-rejected.md) |
-| Two candidate models | 🟢 **Cleared the gate on dominance.**  A third candidate regressed, and the harness restored the incumbent automatically. | [13](notes/13-gating-on-the-failure-set.md) |
-| Changing the served sampling profile | ⚪ **Left unchanged.**  Three repeats gave three rankings, so the difference does not resolve at that sample size. | [12](notes/12-four-sampling-profiles-three-rankings.md) |
-| A one-line fix carried against upstream | 🟢 **Sent upstream and merged.**  The script that re-applied it now works as a regression detector. | [10](notes/10-carrying-a-patch-against-upstream.md) |
+| # | Investigation | Recorded result |
+|:--:|---|---|
+| 01 | [ROCm 7.14 evaluation](notes/01-rocm-714-evaluation.md) | No material llama.cpp gain in that test.  The tested PyTorch wheels failed real operations. |
+| 02 | [Vulkan vs ROCm](notes/02-vulkan-vs-rocm.md) | Vulkan improved the tested serving workloads.  Box has since moved to other runtimes. |
+| 03 | [N-gram speculative decoding](notes/03-speculative-decoding-is-lossy.md) | Faster variants changed the greedy output.  None were adopted. |
+| 04 | [Diagnosing a broken quant](notes/04-diagnosing-a-broken-quant.md) | The suspect file was replaced.  Greedy decoding narrowed the diagnosis but could not prove it alone. |
+| 05 | [The stale performance reference](notes/05-the-control-that-killed-a-false-claim.md) | The smaller KV cache saved memory.  The claimed decode gain was withdrawn. |
+| 06 | [The operating system migration](notes/06-migrating-under-a-written-go-no-go.md) | Upgraded against a written plan, rollback, and verification list. |
+| 07 | [Failures in the verification tools](notes/07-when-the-verifier-is-wrong.md) | Worktree detection and stale manifests omitted the production runtime. |
+| 08 | [A benchmark without a model judge](notes/08-a-benchmark-with-no-judge.md) | Deterministic grading worked.  The task suite reached its ceiling twice. |
+| 09 | [Two misleading evaluation runs](notes/09-when-the-harness-scores-itself.md) | Model-name parsing and sampling explained the apparent failures. |
+| 10 | [Local patches and upstream](notes/10-carrying-a-patch-against-upstream.md) | One patch merged upstream.  Others remained local with different limits. |
+| 11 | [A compaction threshold beyond the server limit](notes/11-a-guard-that-trusts-its-own-number.md) | An ignored configuration key left the client using the wrong context limit. |
+| 12 | [Sampling profiles and repeatability](notes/12-four-sampling-profiles-three-rankings.md) | Three repeats produced different rankings.  The served profile stayed unchanged. |
+| 13 | [Comparing failure sets](notes/13-gating-on-the-failure-set.md) | Useful historical gate design.  Its early-exit procedure is superseded on these hosts. |
+| 14 | [Six rejected engine updates](notes/14-six-upstream-bumps-rejected.md) | None justified replacing the incumbent under the tested conditions. |
+| 15 | [Repeated output-budget errors](notes/15-the-same-false-negative-five-times.md) | Five false capability findings across four harnesses. |
+| 16 | [Coding harness permissions and capacity](notes/16-the-approval-gate-that-blocked-its-own-linter.md) | Routing, permission ordering, and missing language tools needed correction. |
+| 17 | [Shorter complete suites](notes/17-complete-tests-without-duplicate-work.md) | Reuse applicable references and remove repeated work while completing the planned checks. |
+| 18 | [Embedding compatibility](notes/18-a-passing-embedding-suite-that-could-not-replace-the-index.md) | Candidate ranking success did not establish compatibility with stored vectors. |
+| 19 | [DFlash memory and cancellation](notes/19-a-draft-that-fit-until-the-first-batch.md) | Two memory failures and a later cancellation crash.  No adoption. |
+| 20 | [Deployment and qualification](notes/20-serving-is-not-qualification.md) | The deployed Strix model failed its later full suite.  Restoration returned the same incumbent. |
 
 <br>
 
-## The notes
+## Tools
 
-Most notes follow the same shape.  They ask a question, give the verdict up front, and then show the evidence behind it.
+Five standalone utilities are included.  The evaluation utility also has two
+task generators.
 
-> 🔴 the answer was no or the effect was not real, 🟡 mixed, 🟢 it worked
+| Utility | Purpose |
+|---|---|
+| [model-eval](tools/model-eval/) | Deterministic grading, task-level results, baseline summaries, and an optional historical failure-set gate |
+| [gguf-arch.py](tools/gguf-arch.py) | Read architecture and shape metadata from a GGUF header |
+| [gpu-mutex-guard.sh](tools/gpu-mutex-guard.sh) | Make a bounded, best-effort attempt to release image-generation VRAM before starting inference |
+| [context-readout.py](tools/context-readout.py) | Compare recorded prompt counts with configured context per slot, returning only metadata from SQLite |
+| [resume-dl.py](tools/resume-dl.py) | Resume a download after checking the response range and expected size |
 
-| # | Note | Question | Verdict |
-|:--:|---|---|---|
-| **01** | [ROCm 7.14 evaluation](notes/01-rocm-714-evaluation.md) | Is the newer ROCm worth adopting? | 🔴 **No.**  Flat on llama.cpp, broken on PyTorch. |
-| **02** | [Vulkan vs ROCm](notes/02-vulkan-vs-rocm.md) | Can the Mesa Vulkan backend replace ROCm for serving? | 🟢 **Yes**, by a wide margin.  Both carve-outs have since gone. |
-| **03** | [Speculative decoding is lossy](notes/03-speculative-decoding-is-lossy.md) | Are the n-gram speculative speedups real? | 🔴 **No.**  Every faster variant changed the output. |
-| **04** | [Diagnosing a broken quant](notes/04-diagnosing-a-broken-quant.md) | Bad weights, or bad config? | 🟢 One greedy call separates them. |
-| **05** | [The control that killed a false claim](notes/05-the-control-that-killed-a-false-claim.md) | Does a q4_0 KV cache buy back context for free? | 🟡 Yes on VRAM.  A stale baseline produced the decode gain. |
-| **06** | [Migrating under a written go/no-go](notes/06-migrating-under-a-written-go-no-go.md) | How do you upgrade the machine that serves everything? | 🟢 Write the decision, the trigger, and the rollback down first. |
-| **07** | [When the verifier is wrong](notes/07-when-the-verifier-is-wrong.md) | What if the tools that check the system are the broken part? | 🔴 One shell predicate silently hid production from three of them. |
-| **08** | [A benchmark with no judge](notes/08-a-benchmark-with-no-judge.md) | Can you rank models without an LLM judge? | 🟡 **Yes** for grading.  The difficulty calibration ceilinged twice. |
-| **09** | [When the harness scores itself](notes/09-when-the-harness-scores-itself.md) | A model scores 0/50, then 44/50.  Is that the model? | 🔴 **Neither result was.**  Both came from the harness. |
-| **10** | [Carrying a patch against upstream](notes/10-carrying-a-patch-against-upstream.md) | What does a local patch cost, and when does it stop being yours? | 🟡 One merged upstream, one has no repro left to defend, and one had its predicate narrowed twice. |
-| **11** | [A guard that trusts its own number](notes/11-a-guard-that-trusts-its-own-number.md) | Automatic compaction never fired before the session died.  Why? | 🔴 Its threshold sat 90,000 tokens past the server's ceiling.  **Unreachable, not late.** |
-| **12** | [Four sampling profiles, three rankings](notes/12-four-sampling-profiles-three-rankings.md) | Does the sampling profile change how well a model scores? | 🔴 **Not measurably.**  Three repeats, three league tables. |
-| **13** | [Gating on the failure set](notes/13-gating-on-the-failure-set.md) | Can a model be adopted from fewer tasks without weakening the decision? | 🟡 **Yes.**  Only the tasks the incumbent passed can disqualify, and a recovery needs a control too. |
-| **14** | [Six upstream bumps rejected](notes/14-six-upstream-bumps-rejected.md) | Is staying 149 releases behind a maintenance failure? | 🔴 **No.**  Six candidates measured, six flat or worse. |
-| **15** | [The same false negative, five times](notes/15-the-same-false-negative-five-times.md) | A reasoning model returns an empty string.  How often can one machine misread that? | 🔴 **Five**, across four harnesses.  Raising the budget four times did not stop it. |
-| **16** | [The approval gate that blocked its own linter](notes/16-the-approval-gate-that-blocked-its-own-linter.md) | The agent harness was already hardened.  Was it safe, and was it fast? | 🟡 **Neither, quite.**  Five agents shared one slot, and the new approval rule blocked the linter it was added to protect. |
-
-Notes `01`, `02`, `03`, `06`, and `14` cover backends and upgrades.  Notes `05`, `08`, `09`, `12`, `13`, and `15` cover measurement discipline.  Notes `04`, `07`, `10`, `11`, and `16` cover systems, verifiers, and patches.
-
-> [!NOTE]
-> If you read two notes, read [note 09](notes/09-when-the-harness-scores-itself.md) and [note 15](notes/15-the-same-false-negative-five-times.md).  They show best what this repository is for.
+The portable evaluation suite is not the hosts' complete qualification runner.
+The safety, retrieval, family, client, and recovery checks described in later
+notes live in the host tooling.  Source hashes are recorded in the [review
+evidence](evidence/2026-11-07-review.json), but private fixtures and logs are
+not included.
 
 <br>
 
-## Environment
+## Checks
 
-| Component | Serving box | Always-on tier |
-|---|---|---|
-| **GPU** | AMD Radeon RX 7900 XTX, 24 GB, gfx1100 | AMD Strix Halo APU, unified LPDDR5X |
-| **Host** | Intel i5-14600KF, 96 GB DDR4, Ubuntu 26.04.1 LTS, kernel 7.0.0-31 | Same LAN, added part way through |
-| **Runs** | llama.cpp behind llama-swap, Open WebUI front end, ComfyUI for images | Embedding, reranking, the small fast model, speech to text and back, plus one resident coding model that is never evicted |
+These checks exercise code against synthetic fixtures and loopback fake
+servers.  They do not run a model or require a GPU.
 
-The serving box moved from Ubuntu 24.04 to 26.04 during the period these notes cover.  Each measurement ran on the version current at the time, and every note states its own conditions where they matter.
+```sh
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements-dev.txt
+.venv/bin/ruff check .
+.venv/bin/ruff format --check .
+.venv/bin/mypy
+.venv/bin/pytest -q
+bash -n tools/gpu-mutex-guard.sh
+.venv/bin/shellcheck tools/gpu-mutex-guard.sh
+```
 
-Where a note compares results from both machines, pass rates are comparable and timings are not.  The same weights under greedy decoding score the same anywhere, while tokens per second is a property of the hardware.
+CI also runs the tests and task generators on Python 3.8 and 3.13.  See
+[tools/README.md](tools/README.md) for requirements, commands, and known
+limits.
 
 <br>
 
 ## Licence
 
-MIT.  See [LICENSE](LICENSE).
+MIT.  See [LICENSE](LICENSE).  Security reports are covered by
+[SECURITY.md](SECURITY.md).

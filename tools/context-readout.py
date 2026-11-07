@@ -11,8 +11,8 @@ Cross-references three sources:
   2. actual prompt sizes from Open WebUI chat history (read-only)
   3. live slot state from llama-swap's upstream proxy, for whatever is loaded
 
-It reads only token COUNTS and model ids from the chat database.  No message
-content is read, printed, or stored.
+SQLite parses the stored chat JSON.  Only token COUNTS and model ids leave
+SQLite; Python never receives, prints, or stores message content.
 
 usage:
   context-readout.py [--chats N] [--config PATH] [--db PATH] [--endpoint URL]
@@ -31,10 +31,11 @@ import argparse
 import http.client
 import json
 import os
-import re
+import shlex
 import sqlite3
 import urllib.parse
 import urllib.request
+from pathlib import Path
 from typing import Any
 
 DEF_CONF = os.environ.get(
@@ -45,7 +46,7 @@ DEF_SWAP = os.environ.get("LLAMA_SWAP_URL", "http://127.0.0.1:10000")
 
 
 def configured_ctx(conf_path):
-    """model id -> -c, plus alias -> canonical id."""
+    """model id -> per-slot context, plus alias -> canonical id."""
     import yaml
 
     with open(conf_path) as f:
@@ -55,11 +56,18 @@ def configured_ctx(conf_path):
         # Strip comment lines first: a config's own comments often contain strings
         # like "-c 16384 -> 65536 -> 131072", and a naive search returns the
         # historical value rather than the live one.
-        cmd = "\n".join(
-            line for line in m.get("cmd", "").splitlines() if not line.strip().startswith("#")
-        )
-        hit = re.findall(r"-c\s+(\d+)", cmd)
-        ctx[mid] = int(hit[-1]) if hit else None
+        tokens = shlex.split(m.get("cmd", ""), comments=True)
+        settings = {}
+        for index, token in enumerate(tokens):
+            key, equals, value = token.partition("=")
+            if key in ("-c", "--ctx-size", "-np", "--parallel"):
+                if not equals and index + 1 < len(tokens):
+                    value = tokens[index + 1]
+                if value.isdigit():
+                    settings["context" if key in ("-c", "--ctx-size") else "slots"] = int(value)
+        total = settings.get("context")
+        slots = settings.get("slots", 1)
+        ctx[mid] = total // slots if total and slots else None
         for a in m.get("aliases") or []:
             alias[a] = mid
     return ctx, alias
@@ -67,25 +75,39 @@ def configured_ctx(conf_path):
 
 def chat_stats(db_path, limit):
     """model id -> (last prompt tokens, max prompt tokens, n samples)."""
-    con = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+    con = sqlite3.connect(Path(db_path).resolve().as_uri() + "?mode=ro", uri=True)
     stats: dict[str, tuple[int | None, int, int]] = {}
-    rows = con.execute("select chat from chat order by updated_at desc limit ?", (limit,))
-    for (blob,) in rows:
-        try:
-            c = json.loads(blob)
-        except (ValueError, TypeError):  # not JSON, or a NULL chat column
-            continue
-        hist = (c.get("history") or {}).get("messages") or {}
-        for m in hist.values():
-            if m.get("role") != "assistant":
-                continue
-            u = m.get("usage") or {}
-            n = u.get("prompt_n") or u.get("input_tokens")
-            mid = m.get("model")
-            if not n or not mid:
+    # SQLite parses the stored JSON, but only these two metadata fields cross
+    # into Python.  Never select or deserialize a chat/message body here.
+    query = """
+        WITH recent AS (
+            SELECT CASE WHEN json_valid(chat) THEN chat ELSE '{}' END AS document,
+                   updated_at
+            FROM chat ORDER BY updated_at DESC LIMIT ?
+        ), messages AS (
+            SELECT CASE WHEN m.type = 'object' THEN m.value ELSE '{}' END AS message,
+                   recent.updated_at, m.id AS message_order
+            FROM recent, json_each(
+                CASE WHEN json_type(document, '$.history.messages') = 'object'
+                     THEN json_extract(document, '$.history.messages') ELSE '{}' END
+            ) AS m
+        )
+        SELECT json_extract(message, '$.model'),
+               coalesce(nullif(json_extract(message, '$.usage.prompt_n'), 0),
+                        json_extract(message, '$.usage.input_tokens'))
+        FROM messages
+        WHERE json_extract(message, '$.role') = 'assistant'
+          AND json_type(message, '$.model') = 'text'
+        ORDER BY updated_at DESC, message_order DESC
+    """
+    try:
+        for mid, n in con.execute(query, (limit,)):
+            if not isinstance(mid, str) or not mid or not isinstance(n, int) or n <= 0:
                 continue
             last, mx, cnt = stats.get(mid, (None, 0, 0))
             stats[mid] = (n if last is None else last, max(mx, n), cnt + 1)
+    finally:
+        con.close()
     return stats
 
 
@@ -128,6 +150,8 @@ def main():
     ap.add_argument("--db", default=DEF_DB, help=f"Open WebUI database (default {DEF_DB})")
     ap.add_argument("--endpoint", default=DEF_SWAP, help=f"llama-swap URL (default {DEF_SWAP})")
     a = ap.parse_args()
+    if a.chats <= 0:
+        ap.error("--chats must be positive")
 
     ctx, alias = configured_ctx(a.config)
     stats = chat_stats(a.db, a.chats)
