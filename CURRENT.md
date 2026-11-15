@@ -1,52 +1,80 @@
 # Current setup
 
-Observed 7 November 2026, Melbourne time.  This is a dated configuration
-snapshot, supported by read-only host inspection and existing maintenance
-records.  No model was loaded or tested for this review.
+Updated 16 November 2026, Melbourne time, after I replaced Box's graphics
+cards on 13 November.  The hardware table and the Box section below describe
+the new cards.  They come from a read-only host check on 16 November and from
+maintenance records.  No Box model was loaded during that check, so the
+engines and quantisations listed for Box come from the records.
+
+Everything from "Strix services" onward is the 7 November 2026 snapshot.  I
+have not rechecked those sections since, except where one says so.
 
 ## The two machines
 
 | Component | Box | Strix |
 |---|---|---|
 | Processor | Intel Core i5-14600KF | Ryzen AI Max+ 395 |
-| Memory | 96 GB system RAM | 64 GB unified memory |
-| Graphics | Radeon RX 7900 XTX, 24 GB, plus Radeon AI PRO R9700, 32 GB | Integrated Radeon 8060S |
+| Motherboard | ASRock B760 Pro RS/D4 | GMKtec mini PC |
+| Memory | 96 GB DDR4-3200 system RAM | 64 GB unified memory |
+| Graphics | Two Radeon AI PRO R9700, 32 GB each, 64 GB in total | Integrated Radeon 8060S |
 | OS | Ubuntu 26.04.1 LTS | Ubuntu 26.04.1 LTS |
-| Running kernel | 7.0.0-42-generic | 7.0.0-42-generic |
-| Mesa Vulkan package | 26.0.8-1ubuntu0.3 | 26.0.8-1ubuntu0.3 |
-| Serving shape | Ten configured llama-swap model entries across four backend families | Separate agent, OCR, embedding, and voice services |
+| Running kernel | 7.0.0-43, held at that version | 7.0.0-43, held at that version |
+| Serving shape | Eight llama-swap model entries, with four engines installed | Separate agent, OCR, embedding, and voice services |
 
-The original sixteen investigations mostly describe the earlier single-card
-setup.  Their measurements retain their original scope.  The claim in [note
-02](notes/02-vulkan-vs-rocm.md) that all serving had moved to Vulkan was true
-at its dated follow-up.  Box now uses HIP again for its configured lanes.
+I removed the Radeon RX 7900 XTX on 13 November.  The notes written before
+that date describe the single 24 GB card, or the 24 GB and 32 GB pair, and
+their measurements keep that scope.
+
+## Box graphics cards
+
+| Detail | Card A | Card B |
+|---|---|---|
+| Slot | x16, PCIe Gen4, direct to the processor | x4, PCIe Gen4, through the chipset |
+| Power limit | 270 W | 270 W |
+| Voltage offset | -50 mV | -50 mV |
+
+Both cards report the same device ID.  A configuration that selects a card
+by device ID cannot tell them apart, so a service must select its card by
+UUID or PCI address.
+
+Box has a 1000 W power supply.  Box and Strix share one power board, and
+neither has a UPS.
 
 ## Box routing and runtimes
 
-llama-swap runs with configuration watching enabled.  Its capacity router has
-one XTX lease and one R9700 lease.  The main chat family uses the XTX alone,
-allowing the new coding worker to occupy the R9700 concurrently.  Models
-needing both cards compete for both resources.  Two installed GPUs do not make
-every pair of models compatible.
+llama-swap runs two pools, so one model can stay loaded on each card.  A
+model that needs both cards takes both pools.  Two cards of the same size do
+not make every pair of models compatible.
 
-| Role | Effective runtime or configuration | Evidence status |
+| Role | Model | Runtime and placement |
 |---|---|---|
-| Main chat and its steered twin | Strata 0.2.10, HIP, IQ4_XS, 262,144 context, XTX only, 768 MiB reserve | Full primary suite passed on 5 November.  Twin received routed light verification. |
-| Large 4.1 family and its steered twin | Strata 0.2.10 engine, HIP, two GPUs, 131,072 context | Adopted 3 November with a one-run returning-latency waiver.  Original performance failure remains. |
-| Comet and its steered twin | Maya 1.1.50, HIP, 262,144 context | Adopted 3 November after qualification, family, client, and recovery checks. |
-| Atlas and the specialist vision lane | llama.cpp achyudh 3ef1275 with DoS patch, HIP, R9700 | Guard points at this runtime.  The specialist lane has no complete performance record. |
-| Box coding worker | Same HIP llama.cpp, abliterated 35B-A3B UD-Q5_K_S, three slots of 131,072 | Adopted 5 November after co-residence and actual-client checks, with recorded waivers. |
-| Dense 27B EXL3 lane | EXL3 RDNA 1.6.6 through tabbyAPI, R9700 | Promoted 2 November after a separately authorised passing rerun.  Safety score remains diagnostic. |
+| Titan and its uncensored twin | Flash-Next | Radiance 1.17.0, split across both cards, 262k context |
+| Abyss and its steered twin | DeepSeek V4.1-Flash Coder, pruned, IQ2_XXS | Maya 1.1.60, both cards |
+| Ray | Qwen 27B, MXFP4 | Radiance in Docker |
+| Flare | Swift 1.5 heretic, MXFP4 | Radiance in Docker |
+| Sentinel, security and vision | OrcaCyber Nano 1.0 27B | llama.cpp |
+| Box coding worker | Ornith 1.5 abliterated, UD-Q5_K_S | llama.cpp |
 
-The 4.1 server wrapper still launches from an older Strata Python tree while
-its configuration selects the 0.2.10 engine.  The engine, wrapper,
-configuration, libraries, and support files all matter for provenance and
-backup coverage.
+Since 14 November the coding worker no longer loads alongside Titan.  Titan
+across both cards leaves Box with about 3.9 GiB of system RAM to spare.
 
-The local coding router can distribute worker turns across Box and Strix.  Its
-Box worker is text-only and uses a smaller context than Strix.  Router source
-shows eligibility and conflict checks.  This review did not exercise routing or
-assert the current state of its separate operator control file.
+The llama.cpp lanes use Vulkan builds.  I tested ROCm and rejected it for
+decode speed.  The 7 November review had found Box on HIP for its configured
+lanes, so this reverses that.  The Radiance, Maya, and Strata engines are
+also installed.
+
+Abyss, its steered twin, and Sentinel each failed the destructive-tool safety
+test.  I waived those results, so these models are serving without having
+passed qualification.
+
+ComfyUI is pinned to card A.
+
+The local coding router can send worker turns to Box or to Strix.  The
+16 November check did not exercise routing.
+
+This update records no qualification results for the new cards.  The
+evidence statuses in the [7 November review](reviews/2026-11-07.md) describe
+the previous cards and the models served then.
 
 ## Strix services
 

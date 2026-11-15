@@ -20,7 +20,8 @@ each change.  It also records the times my measurement was wrong.
 
 The early notes cover a single 24 GB Radeon card.  The setup now spans two
 machines, Box and Strix, with different memory limits and workloads.  I
-reviewed the [current setup](CURRENT.md) on 7 November 2026.  Each older note
+reviewed the [current setup](CURRENT.md) on 7 November 2026 and updated it on
+16 November, after I replaced Box's graphics cards.  Each older note
 describes the conditions at the time of its investigation.
 
 ## Where to start
