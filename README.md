@@ -1,29 +1,31 @@
 <div align="center">
 
-# Local LLM inference
+# Local LLM inference notes
 
-### Measurements, failed upgrades, and the tools used to check them
+**Measurements, failed upgrades, and the tools I use to check them**
 
-![20 notes](https://img.shields.io/badge/notes-20-0969da?style=for-the-badge) ![2 hosts](https://img.shields.io/badge/hosts-2-0969da?style=for-the-badge) ![5 utilities](https://img.shields.io/badge/utilities-5-0969da?style=for-the-badge) [![CI](https://img.shields.io/github/actions/workflow/status/Danielkgr/local-llm-inference-notes/ci.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/Danielkgr/local-llm-inference-notes/actions/workflows/ci.yml) ![MIT licence](https://img.shields.io/badge/licence-MIT-57606a?style=for-the-badge)
+20 notes · 2 machines · 5 tools · MIT licence
+
+[![CI](https://github.com/Danielkgr/local-llm-inference-notes/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Danielkgr/local-llm-inference-notes/actions/workflows/ci.yml)
 
 </div>
 
-<br>
+---
+
+## About
 
 I run local language models for coding, chat, and document work.  This
 repository records what I changed, what I measured, and why I kept or rejected
-it.  It also records the occasions when the measurement was wrong.
+each change.  It also records the times my measurement was wrong.
 
-The early notes concern a single 24 GB Radeon card.  The setup now spans two
-machines, Box and Strix, with different memory limits and workloads.  The
-[current setup](CURRENT.md) was reviewed on 7 November 2026.  The older notes
-describe the conditions at the time of each investigation.
-
-<br>
+The early notes cover a single 24 GB Radeon card.  The setup now spans two
+machines, Box and Strix, with different memory limits and workloads.  I
+reviewed the [current setup](CURRENT.md) on 7 November 2026.  Each older note
+describes the conditions at the time of its investigation.
 
 ## Where to start
 
-| Looking for | Read |
+| To find | Read |
 |---|---|
 | What runs now, including unresolved failures | [Current setup](CURRENT.md) |
 | The procedure for a new comparison | [Measurement rules](METHOD.md) |
@@ -31,12 +33,10 @@ describe the conditions at the time of each investigation.
 | Small tools to use elsewhere | [Tools and checks](tools/README.md) |
 | The older coding harness configuration | [Historical harness example](harness/README.md) |
 
-The latest Strix coding model is deployed, but its full suite on 6 November
-failed several checks.  Only its safety score had been waived.  Box also has
-adoptions made under specific waivers.  [CURRENT.md](CURRENT.md) separates what
+I deployed the latest Strix coding model, but it failed several checks in its
+full suite on 6 November.  I had waived only its safety score.  I also adopted
+some Box models under specific waivers.  [CURRENT.md](CURRENT.md) separates what
 is serving from what passed qualification.
-
-<br>
 
 ## Why I keep these notes
 
@@ -45,12 +45,12 @@ weights, configuration, and upgrades.  It also leaves me responsible for
 checking that it does the work and that its tools handle data as intended.
 Local inference alone does not establish confidentiality.
 
-Most of the work here concerns fairly ordinary decisions.  Does a new backend
-improve the workload I use?  Will more context fit without making the machine
+Most of the work here answers ordinary questions.  Does a new backend improve
+the workload I use?  Will more context fit without making the machine
 unreliable?  Did an upgrade preserve tool calls and retrieval?  Can I restore
 the previous setup if it fails?
 
-The misleading results have been at least as useful as the successful changes.
+The misleading results taught me as much as the successful changes.
 
 | Initial result | What the check found |
 |---|---|
@@ -63,9 +63,7 @@ The misleading results have been at least as useful as the successful changes.
 The notes give the conditions and limits behind those findings.  They are
 measurements of these workloads, not a ranking of models for every use.
 
-<br>
-
-## The investigations
+## Investigations
 
 | # | Investigation | Recorded result |
 |:--:|---|---|
@@ -90,14 +88,12 @@ measurements of these workloads, not a ranking of models for every use.
 | 19 | [DFlash memory and cancellation](notes/19-a-draft-that-fit-until-the-first-batch.md) | Two memory failures and a later cancellation crash.  No adoption. |
 | 20 | [Deployment and qualification](notes/20-serving-is-not-qualification.md) | The deployed Strix model failed its later full suite.  Restoration returned the same incumbent. |
 
-<br>
-
 ## Tools
 
-Five standalone utilities are included.  The evaluation utility also has two
-task generators.
+The repository includes five standalone tools.  The evaluation tool also has
+two task generators.
 
-| Utility | Purpose |
+| Tool | Purpose |
 |---|---|
 | [model-eval](tools/model-eval/) | Deterministic grading, task-level results, baseline summaries, and an optional historical failure-set gate |
 | [gguf-arch.py](tools/gguf-arch.py) | Read architecture and shape metadata from a GGUF header |
@@ -107,15 +103,12 @@ task generators.
 
 The portable evaluation suite is not the hosts' complete qualification runner.
 The safety, retrieval, family, client, and recovery checks described in later
-notes live in the host tooling.  Source hashes are recorded in the [review
-evidence](evidence/2026-11-07-review.json), but private fixtures and logs are
-not included.
-
-<br>
+notes live in the host tooling.  The [review evidence](evidence/2026-11-07-review.json) records source hashes.
+The repository does not include private fixtures or logs.
 
 ## Checks
 
-These checks exercise code against synthetic fixtures and loopback fake
+These checks run the code against synthetic fixtures and loopback fake
 servers.  They do not run a model or require a GPU.
 
 ```sh
@@ -133,9 +126,7 @@ CI also runs the tests and task generators on Python 3.8 and 3.13.  See
 [tools/README.md](tools/README.md) for requirements, commands, and known
 limits.
 
-<br>
-
 ## Licence
 
-MIT.  See [LICENSE](LICENSE).  Security reports are covered by
-[SECURITY.md](SECURITY.md).
+MIT.  See [LICENSE](LICENSE).  [SECURITY.md](SECURITY.md) explains how to
+report a security issue.
