@@ -22,7 +22,7 @@ See [METHOD.md](../METHOD.md) for the current host procedure.
 Python 3.8 or newer.  Standard library only, with one exception:
 `context-readout.py` needs PyYAML to read a llama-swap config.
 
-```
+```sh
 pip install pyyaml     # only for context-readout.py
 ```
 
